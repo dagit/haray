@@ -1,0 +1,4 @@
+*.swp
+dist
+cabal-dev
+
