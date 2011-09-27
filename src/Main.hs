@@ -20,8 +20,8 @@ main = do
                                           (Vec3 450 20 (-1000))
                                           (Vec3 0.8 0.2 0.2)) ]
       hits = 
-        for [0 .. 499] $ \i ->
-          for [0 .. 499] $ \j ->
+        for [499, 498 .. 0] $ \j ->
+          for [0 .. 499] $ \i ->
             let tmax = 100000
                 r = Ray (Vec3 i j 0) dir
                 keepClosest :: Ord a => [Maybe (HitRecord a)]
@@ -31,7 +31,6 @@ main = do
                 keepClosest [h, Nothing] = h
                 keepClosest [Just h1, Just h2] | (hrT h1) <= (hrT h2) = Just h1
                                                | otherwise = Just h2
-                comp x y = compare (fst x) (fst y)
                 hit = keepClosest $ for shapes $ \shape ->
                   case shapeHit shape r 0.00001 tmax 0 of
                     Just rec -> Just rec
