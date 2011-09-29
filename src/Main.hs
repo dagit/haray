@@ -5,6 +5,7 @@ import Data.Maybe
 import Data.Ray
 import Data.RGB
 import Data.Shape
+import Data.Scene
 import Data.HitRecord
 import Data.VectorSpace
 import Data.Bitmap
@@ -14,17 +15,14 @@ import System.Environment ( getArgs )
 main :: IO ()
 main = do
   args <- getArgs
-  when (length args < 1) (error "Usage: raytracer <output.bmp>")
-  let dir = Vec3 0 0 (-1)
+  when (length args < 2) (error "Usage: raytracer <input.scene> <output.bmp>")
+  let outfile = head (drop 1 args)
+      input   = head args
+      dir = Vec3 0 0 (-1)
       for = flip map
-      shapes = [ mkSphere (SphereData (Vec3 250 250 (-1000))
-                                      150
-                                      (Vec3 0.2 0.2 0.8))
-               , mkTriangle (TriangleData (Vec3 300 600 (-800))
-                                          (Vec3 0 100 (-1000))
-                                          (Vec3 450 20 (-1000))
-                                          (Vec3 0.8 0.2 0.2)) ]::[Shape Float]
-  bmp <- allocBMP 500 500 
+  putStrLn $ "Reading scene: " ++ input
+  shapes <- readSceneToShapes input
+  bmp <- allocBMP 500 500
   forM_ [499, 498 .. 0] $ \j ->
     forM_ [0 .. 499] $ \i -> do
       let tmax = 100000
@@ -39,4 +37,4 @@ main = do
                         ,(toWord8 (clamp (getB (hrColor hr))))) bmp
         Nothing ->
           pokePixel i j ((toWord8 0.2), (toWord8 0.2), (toWord8 0.2)) bmp
-  writeBMP (head args) bmp
+  writeBMP outfile bmp
