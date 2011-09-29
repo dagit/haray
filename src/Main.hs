@@ -29,17 +29,9 @@ main = do
     forM_ [0 .. 499] $ \i -> do
       let tmax = 100000
           r = Ray (Vec3 (fromIntegral i) (fromIntegral j) 0) dir
-          keepClosest :: Ord a => [Maybe (HitRecord a)]
-                      -> Maybe (HitRecord a)
-          keepClosest [Nothing, Nothing] = Nothing
-          keepClosest [Nothing, h] = h
-          keepClosest [h, Nothing] = h
-          keepClosest [Just h1, Just h2] | (hrT h1) <= (hrT h2) = Just h1
-                                         | otherwise = Just h2
-          hit = keepClosest $ for shapes $ \shape ->
-            case shapeHit shape r 0.00001 tmax 0 of
-              Just rec -> Just rec
-              Nothing -> Nothing
+          comp x y = hrT x `compare` hrT y
+          hit = listToMaybe $ sortBy comp $ catMaybes $
+            for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
       case hit of
         Just hr ->
           pokePixel i j ((toWord8 (clamp (getR (hrColor hr))))
