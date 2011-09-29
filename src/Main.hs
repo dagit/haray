@@ -8,10 +8,13 @@ import Data.Shape
 import Data.HitRecord
 import Data.VectorSpace
 import Data.Bitmap
-import Control.Monad ( forM_ )
+import Control.Monad ( forM_, when )
+import System.Environment ( getArgs )
 
 main :: IO ()
 main = do
+  args <- getArgs
+  when (length args < 1) (error "Usage: raytracer <output.bmp>")
   let dir = Vec3 0 0 (-1)
       for = flip map
       shapes = [ mkSphere (SphereData (Vec3 250 250 (-1000))
@@ -44,4 +47,4 @@ main = do
                         ,(toWord8 (clamp (getB (hrColor hr))))) bmp
         Nothing ->
           pokePixel i j ((toWord8 0.2), (toWord8 0.2), (toWord8 0.2)) bmp
-  writeBMP "raytracer.bmp" bmp
+  writeBMP (head args) bmp
