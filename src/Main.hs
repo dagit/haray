@@ -23,7 +23,7 @@ main = do
                , mkTriangle (TriangleData (Vec3 300 600 (-800))
                                           (Vec3 0 100 (-1000))
                                           (Vec3 450 20 (-1000))
-                                          (Vec3 0.8 0.2 0.2)) ]
+                                          (Vec3 0.8 0.2 0.2)) ]::[Shape Float]
   bmp <- allocBMP 500 500 
   forM_ [499, 498 .. 0] $ \j ->
     forM_ [0 .. 499] $ \i -> do

@@ -8,10 +8,15 @@ data Vec2 a = Vec2 !a !a
 
 class VectorSpace v where
   type Scalar v :: *
+  {-# INLINE element #-}
   element :: (k ~ Scalar v) => Int -> v -> k
+  {-# INLINE indexOf #-}
   indexOf :: (k ~ Scalar v, Ord k) => (k -> k -> Bool) -> v -> Int
+  {-# INLINE zipV #-}
   zipV  :: (k ~ Scalar v) => (k -> k -> k) -> v -> v -> v
+  {-# INLINE mapV #-}
   mapV  :: (k ~ Scalar v) => (k -> k) -> v -> v
+  {-# INLINE foldV #-}
   foldV :: (k ~ Scalar v) => (k -> k -> k) -> v -> k
 
 instance Floating a => VectorSpace (Vec3 a) where
@@ -38,24 +43,34 @@ instance Floating a => VectorSpace (Vec2 a) where
   indexOf p (Vec2 x y) | y `p` x   = 1
                        | otherwise = 0
 
+{-# INLINE negateV #-}
 negateV :: (k ~ Scalar v, Num k, VectorSpace v) => v -> v
 negateV = mapV negate
+{-# INLINE (<+>) #-}
 (<+>) :: (k ~ Scalar v, Num k, VectorSpace v) => v -> v -> v
 (<+>) = zipV (+)
+{-# INLINE (<*>) #-}
 (<*>) :: (k ~ Scalar v, Num k, VectorSpace v) => v -> v -> v
 (<*>) = zipV (*)
+{-# INLINE (<->) #-}
 (<->) :: (k ~ Scalar v, Num k, VectorSpace v) => v -> v -> v
 (<->) = zipV (-)
+{-# INLINE (</>) #-}
 (</>) :: (k ~ Scalar v, Fractional k, VectorSpace v) => v -> v -> v
 (</>) = zipV (/)
+{-# INLINE (<.>) #-}
 (<.>) :: (k ~ Scalar v, Num k, VectorSpace v) => v -> v -> k -- dot product
 v1 <.> v2 = foldV (+) (v1 <*> v2)
+{-# INLINE (*>) #-}
 (*>) :: (k ~ Scalar v, Num k, VectorSpace v) => k -> v -> v
 k *> v = mapV (k*) v
+{-# INLINE (</) #-}
 (</) :: (k ~ Scalar v, Fractional k, VectorSpace v) => v -> k -> v
 v </ k = mapV (/k) v
+{-# INLINE len #-}
 len :: (k ~ Scalar v, Floating k, VectorSpace v) => v -> k
 len v = sqrt $ lenSquared v
+{-# INLINE lenSquared #-}
 lenSquared :: (k ~ Scalar v, Num k, VectorSpace v) => v -> k
 lenSquared v = v <.> v
 
@@ -83,29 +98,15 @@ indexOfMaxAbsComponent :: (k ~ Scalar v, Ord k, Num k, VectorSpace v)
 indexOfMaxAbsComponent = indexOf (\x y -> abs x > abs y)
 
 -- |Cross product
+{-# INLINE (<%>) #-}
 (<%>) :: Floating a => Vec3 a -> Vec3 a -> Vec3 a
 (Vec3 x1 y1 z1) <%> (Vec3 x2 y2 z2) = Vec3 (y1*z2 - z1*y2)
                                            (z1*x2 - x1*z2)
                                            (x1*y2 - y1*x2)
 
+{-# INLINE unitVector #-}
 unitVector :: (k ~ Scalar v, Floating k, VectorSpace v) => v -> v
 unitVector v = v </ len v
 
 tripleProduct :: Floating a => Vec3 a -> Vec3 a -> Vec3 a -> a
 tripleProduct v1 v2 v3 = (v1 <%> v2) <.> v3
-
-{-
-constructFromUV :: Vec3 a -> Vec3 a -> (Vec3 a, Vec3 a, Vec3 a)
-constructFromUV a b = (u, v, w)
-  where aXb = a <%> b
-        u = a </ len a
-        w = aXb </ len aXb
-        v = w <%> u
-
-constructFromVU :: Vec3 a -> Vec3 a -> (Vec3 a, Vec3 a, Vec3 a)
-constructFromVU a b = (u, v, w)
-  where aXb = a <%> b
-        v = a </ len a
-        u = aXb </ len aXb
-        w = 
--}

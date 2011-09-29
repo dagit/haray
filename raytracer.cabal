@@ -12,6 +12,8 @@ Executable raytracer
   hs-source-dirs: src
   Main-is: Main.hs
   build-depends: base > 3 && < 5
+  ghc-prof-options: -prof -auto-all -rtsopts
+  ghc-options: -O2 -funbox-strict-fields
 
 Library
   -- .hs or .lhs file containing the Main module.
@@ -29,6 +31,8 @@ Library
                          Data.Shape,
                          Data.RGB,
                          Data.Bitmap
+  ghc-prof-options: -prof -auto-all -rtsopts
+  ghc-options: -O2 -funbox-strict-fields
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         

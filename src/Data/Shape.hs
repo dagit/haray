@@ -11,15 +11,16 @@ data Shape a = Shape
   }
 
 data TriangleData a = TriangleData
-  { tdP0 :: Vec3 a
-  , tdP1 :: Vec3 a
-  , tdP2 :: Vec3 a
-  , tdColor :: RGB a
+  { tdP0 :: !(Vec3 a)
+  , tdP1 :: !(Vec3 a)
+  , tdP2 :: !(Vec3 a)
+  , tdColor :: !(RGB a)
   } deriving (Read, Show, Eq, Ord)
 
+{-# INLINE mkTriangle #-}
 mkTriangle :: (Ord a, Floating a) => TriangleData a -> Shape a
 mkTriangle td = Shape
-  { shapeHit = \r tmin tmax time ->
+  { shapeHit = \r tmin tmax time -> {-# SCC "triangleShapeHit" #-}
     let p0 = tdP0 td
         p1 = tdP1 td
         p2 = tdP2 td
@@ -92,14 +93,15 @@ mkTriangle td = Shape
   }
 
 data SphereData a = SphereData
-  { sphereCenter :: Vec3 a
-  , sphereRadius :: a
-  , sphereColor  :: RGB a
+  { sphereCenter :: !(Vec3 a)
+  , sphereRadius :: !a
+  , sphereColor  :: !(RGB a)
   } deriving (Read, Show, Eq, Ord)
 
+{-# INLINE mkSphere #-}
 mkSphere :: (Ord a, Floating a) => SphereData a -> Shape a
 mkSphere sd = Shape
-  { shapeHit = \r tmin tmax time ->
+  { shapeHit = \r tmin tmax time -> {-# SCC "sphereShapeHit" #-}
     let temp = rayOrigin r <-> sphereCenter sd
         a = rayDirection r <.> rayDirection r
         b = 2*(rayDirection r <.> temp)
