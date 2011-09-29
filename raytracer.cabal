@@ -19,13 +19,16 @@ Library
   hs-source-dirs: src
   
   -- Packages needed in order to build this package.
-  Build-depends:       base > 3 && < 5
+  Build-depends:       base > 3 && < 5,
+                       bmp == 1.1.*,
+                       bytestring == 0.9.*
   
   Exposed-modules:       Data.VectorSpace,
                          Data.OrthoNormalBasis,
                          Data.Ray,
                          Data.Shape,
-                         Data.RGB
+                         Data.RGB,
+                         Data.Bitmap
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
