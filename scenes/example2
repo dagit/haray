@@ -1,11 +1,22 @@
-[ SESphere (SphereData { sphereCenter = Vec3 150.0 320.0 (-1000.0)
+[ SECamera { camEye     = Vec3 250.0 250.0 0.0
+           , camGaze    = Vec3 0.0 0.0 (-1.0)
+           , camUp      = Vec3 0.0 1.0 0.0
+           , camU0      = -1.2
+           , camV0      = -1.2
+           , camU1      = 1.2
+           , camV1      = 1.2
+           , camDist    = 1.0
+           , camNX      = 500
+           , camNY      = 500
+           , camApeture = 2}
+, SESphere (SphereData { sphereCenter = Vec3 150.0 320.0 (-300.0)
                        , sphereRadius = 150.0
                        , sphereColor = Vec3 1.0 0.0 0.0})
-, SETriangle (TriangleData { tdP0 = Vec3 30.0 228.0(-1000.0)
-                           , tdP1 = Vec3 250.0 20.0 (-1000.0)
-                           , tdP2 = Vec3 470.0 228.0 (-1000.0)
+, SETriangle (TriangleData { tdP0 = Vec3 30.0 228.0(-255.0)
+                           , tdP1 = Vec3 250.0 20.0 (-255.0)
+                           , tdP2 = Vec3 470.0 228.0 (-255.0)
                            , tdColor = Vec3 1.0 0.0 0.0})
-, SESphere (SphereData { sphereCenter = Vec3 350.0 320.0 (-1000.0)
+, SESphere (SphereData { sphereCenter = Vec3 350.0 320.0 (-300.0)
                        , sphereRadius = 150.0
                        , sphereColor = Vec3 1.0 0.0 0.0})
 ]

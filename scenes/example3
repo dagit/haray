@@ -1,0 +1,15 @@
+[ SECamera { camEye     = Vec3 0.0 0.0 2.0
+           , camGaze    = Vec3 0.0 0.0 (-2.0)
+           , camUp      = Vec3 0.0 1.0 0.0
+           , camU0      = -2.0
+           , camV0      = -2.0
+           , camU1      = 2.0
+           , camV1      = 2.0
+           , camDist    = 2.0
+           , camNX      = 101
+           , camNY      = 101
+           , camApeture = 2}
+, SESphere (SphereData { sphereCenter = Vec3 0.0 0.0 0.0
+                       , sphereRadius = 1.41421
+                       , sphereColor = Vec3 0.8 0.8 0.8})
+]

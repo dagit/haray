@@ -28,6 +28,7 @@ Library
   
   Exposed-modules:       Data.VectorSpace,
                          Data.OrthoNormalBasis,
+                         Data.Camera,
                          Data.Ray,
                          Data.Shape,
                          Data.RGB,
