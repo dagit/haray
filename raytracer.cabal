@@ -12,7 +12,9 @@ Executable raytracer
   hs-source-dirs: src
   Main-is: Main.hs
   build-depends: base > 3 && < 5
-  ghc-prof-options: -prof -auto-all -rtsopts
+  if impl(ghc >= 7.0.1)
+    ghc-prof-options: -rtsopts
+  ghc-prof-options: -prof -auto-all
   ghc-options: -O2 -funbox-strict-fields
 
 Library
@@ -34,7 +36,9 @@ Library
                          Data.RGB,
                          Data.Bitmap,
                          Data.Scene
-  ghc-prof-options: -prof -auto-all -rtsopts
+  if impl(ghc >= 7.0.1)
+    ghc-prof-options: -rtsopts
+  ghc-prof-options: -prof -auto-all
   ghc-options: -O2 -funbox-strict-fields
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
