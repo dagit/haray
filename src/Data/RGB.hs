@@ -19,8 +19,8 @@ white = Vec3 1 1 1
 black = Vec3 0 0 0
 
 {-# INLINE toWord8 #-}
-toWord8 :: (Enum a, Num a) => a -> Word8
-toWord8 a = toEnum . fromEnum $ 256 * a
+toWord8 :: (Enum a, Num a, Ord a) => a -> Word8
+toWord8 a = toEnum . fromEnum $ 255 * clamp a
 
 {-# INLINE clamp #-}
 clamp :: (Num a, Ord a) => a -> a
@@ -31,4 +31,4 @@ clamp f | f >= 1 = 1
 gamma = 2.2
 
 toWord8Gamma :: (Ord a, Enum a, Floating a) => a -> a -> Word8
-toWord8Gamma g f = toEnum . fromEnum $ 256 * ((clamp f)**(1/g))
+toWord8Gamma g f = toEnum . fromEnum $ 255 * ((clamp f)**(1/g))
