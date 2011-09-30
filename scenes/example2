@@ -1,0 +1,11 @@
+[ SESphere (SphereData { sphereCenter = Vec3 150.0 320.0 (-1000.0)
+                       , sphereRadius = 150.0
+                       , sphereColor = Vec3 0.9 0.0 0.0})
+, SETriangle (TriangleData { tdP0 = Vec3 30.0 228.0(-1000.0)
+                           , tdP1 = Vec3 250.0 20.0 (-1000.0)
+                           , tdP2 = Vec3 470.0 228.0 (-1000.0)
+                           , tdColor = Vec3 0.9 0.0 0.0})
+, SESphere (SphereData { sphereCenter = Vec3 350.0 320.0 (-1000.0)
+                       , sphereRadius = 150.0
+                       , sphereColor = Vec3 0.9 0.0 0.0})
+]
