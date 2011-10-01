@@ -13,6 +13,7 @@ import Data.Luminaire
 import Data.Bitmap
 import Control.Monad ( forM_, when )
 import System.Environment ( getArgs )
+import System.IO ( hFlush, stdout )
 
 main :: IO ()
 main = do
@@ -45,6 +46,7 @@ main = do
           progress = i+j*nx
           tenpercent = fromIntegral nx * fromIntegral ny * 0.1
       when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
+      hFlush stdout
       case hit of
         Just hr -> do
           -- TODO: generalize this to work with multiple directed lights
