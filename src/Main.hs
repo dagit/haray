@@ -63,7 +63,7 @@ main = do
               hn       = h<.>n
               at       = rayOrigin r <+> (hrT hr*> rayDirection r)
               inShadow = or $ for shapes $ \shape ->
-                shapeShadowHit shape (Ray at l) 0.0001 tmax 0
+                shapeShadowHit shape (Ray at l) 0.01 tmax 0
               c        = if inShadow
                            then cr <*> ca -- just the ambient light
                            else (cr <*> (ca <+> (m*>cl))) <+>
