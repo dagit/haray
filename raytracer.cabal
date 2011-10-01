@@ -35,7 +35,8 @@ Library
                          Data.Shape,
                          Data.RGB,
                          Data.Bitmap,
-                         Data.Scene
+                         Data.Scene,
+                         Data.Luminaire
   if impl(ghc >= 7.0.1)
     ghc-prof-options: -rtsopts
   ghc-prof-options: -prof -auto-all
