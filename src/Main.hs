@@ -19,7 +19,7 @@ import System.IO ( hFlush, stdout )
 main :: IO ()
 main = do
   args <- getArgs
-  when (length args < 2) (error "Usage: raytracer <input.scene> <output.png>")
+  when (length args < 2) (error "Usage: haray <input.scene> <output.png>")
   let outfile  = head (drop 1 args)
       input    = head args
       for      = flip map
