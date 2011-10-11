@@ -11,6 +11,7 @@ type Scene = [SceneElement]
 
 data SceneElement = SESphere (SphereData Float)
                   | SETriangle (TriangleData Float)
+                  | SEPlane (PlaneData Float)
                   | SECamera { camEye       :: Vec3 Float
                              , camGaze      :: Vec3 Float
                              , camUp        :: Vec3 Float
@@ -30,6 +31,7 @@ data SceneElement = SESphere (SphereData Float)
 mkShape :: SceneElement -> Maybe (Shape Float)
 mkShape (SESphere sd)   = Just $ mkSphere sd
 mkShape (SETriangle td) = Just $ mkTriangle td
+mkShape (SEPlane pd)    = Just $ mkPlane pd
 mkShape _               = Nothing
 
 mkShapes :: Scene -> [Shape Float]

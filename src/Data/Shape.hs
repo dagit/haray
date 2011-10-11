@@ -144,3 +144,46 @@ mkSphere sd = Shape
         else False
       else False
   }
+
+data PlaneData a = PlaneData
+  { pdCenter :: !(Vec3 a)
+  , pdNormal :: !(Vec3 a)
+  , pdColor  :: !(RGB a)
+  } deriving (Read, Show, Eq, Ord)
+
+{-# INLINE mkPlane #-}
+mkPlane :: (Ord a, Floating a) => PlaneData a -> Shape a
+mkPlane pd = Shape
+  { shapeHit = \r tmin tmax time ->
+    let n   = pdNormal pd
+        p0  = pdCenter pd
+        l   = rayDirection r
+        l0  = rayOrigin r
+        eps = 0.01
+        numer = (p0 <-> l0) <.> n
+        denom = l <.> n
+        tval  = numer / denom
+    in
+    if abs denom < eps
+      then Nothing
+      else if tmin <= tval && tval <= tmax
+             then Just $ HitRecord
+               { hrT      = numer / denom
+               , hrNormal = n
+               , hrColor  = pdColor pd
+               }
+             else Nothing
+  , shapeShadowHit = \r tmin tmax time ->
+    let n   = pdNormal pd
+        p0  = pdCenter pd
+        l   = rayDirection r
+        l0  = rayOrigin r
+        eps = 0.01
+        numer = (p0 <-> l0) <.> n
+        denom = l <.> n
+        tval = numer / denom
+    in
+    if abs denom < eps
+      then False
+      else tmin <= tval && tval <= tmax
+  }
