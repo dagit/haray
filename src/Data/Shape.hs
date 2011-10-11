@@ -134,14 +134,14 @@ mkSphere sd = Shape
     in
     if discriminant' > 0
       then let discriminant = sqrt discriminant'
-               t = ((-b) - discriminant)/(2*a)
+               t  = ((-b) - discriminant)/(2*a)
+               t' = ((-b) + discriminant)/(2*a)
       in
       if t < tmin
-        then let t' = ((-b) + discriminant) / (2*a) in
-             if t' < tmin || t' > tmax
+        then if t' < tmin || t' > tmax
                then False
                else True
-        else False
+        else True
       else False
   }
 
