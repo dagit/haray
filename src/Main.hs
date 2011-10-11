@@ -5,13 +5,13 @@ import Data.Maybe
 import Data.Ray
 import Data.RGB
 import Data.Shape
-import Data.Scene hiding (mkCamera)
-import Data.Camera
+import Data.Scene as S
+import Data.Camera as C
 import Data.HitRecord
 import Data.VectorSpace
 import Data.Luminaire
 import Data.Bitmap
-import Control.Monad ( forM_, when )
+import Control.Monad ( forM_, when, mplus )
 import System.Environment ( getArgs )
 import System.IO ( hFlush, stdout )
 
@@ -19,21 +19,23 @@ main :: IO ()
 main = do
   args <- getArgs
   when (length args < 2) (error "Usage: raytracer <input.scene> <output.bmp>")
-  let outfile = head (drop 1 args)
-      input   = head args
-      for = flip map
+  let outfile  = head (drop 1 args)
+      input    = head args
+      for      = flip map
       comp x y = hrT x `compare` hrT y
-      defaultCamera = mkCamera (Vec3 0.0 0.0 0.0)
-                               (Vec3 0.0 0.0 (-1))
-                               (Vec3 0 1 0)
-                               2 (-2) 2 (-2) 2 1
+      defaultCamera = (C.mkCamera (Vec3 0.0 0.0 0.0)
+                                  (Vec3 0.0 0.0 (-1))
+                                  (Vec3 0 1 0) 2 (-2) 2 (-2) 2 1, 500, 500)
       defaultDL = DirectedLight (Vec3 0 (-1) 0)
                                 (Vec3 0.8 0.8 0.8)
       defaultAmbient = AmbientLight (Vec3 0.2 0.2 0.2)
   putStrLn $ "Reading scene: " ++ input
-  shapes <- readSceneToShapes input
-  c' <- readSceneToCamera input
-  let (camera, nx, ny) = maybe (defaultCamera, 500, 500) id c'
+  scene <- readScene input
+  let (camera, nx, ny) = maybe defaultCamera id c'
+      c'               = S.mkCamera scene
+      shapes           = mkShapes scene
+      directedLights   = mkDirectedLights scene
+      ambientLight     = maybe defaultAmbient id (mkAmbientLight scene)
   bmp <- allocBMP nx ny
   putStr $ "Rendering:"
   forM_ [(ny-1), (ny-2) .. 0] $ \j ->
@@ -49,25 +51,30 @@ main = do
       hFlush stdout
       case hit of
         Just hr -> do
-          -- TODO: generalize this to work with multiple directed lights
           let cr       = hrColor hr
-              cl       = dlColor defaultDL
-              ca       = alColor defaultAmbient
+              ca       = alColor ambientLight
               n        = hrNormal hr
-              l        = unitVector $ negateV $ dlDirection defaultDL
               e        = unitVector $ negateV $ rayDirection r
-              m        = max 0 (n <.> l)
               cp       = Vec3 1 1 1 <-> cr
               p        = 32
-              h        = unitVector $ e <+> l
-              hn       = h<.>n
               at       = rayOrigin r <+> (hrT hr*> rayDirection r)
-              inShadow = or $ for shapes $ \shape ->
-                shapeShadowHit shape (Ray at l) 0.01 tmax 0
-              c        = if inShadow
-                           then cr <*> ca -- just the ambient light
-                           else (cr <*> (ca <+> (m*>cl))) <+>
-                                ((hn**p)*>(cl <*> cp))
+              vsum     = foldl' (<+>) (Vec3 0 0 0)
+              c        = if null lightingTerms
+                           then cr <*> ca
+                           else (cr <*> (ca <+> vsum diffs)) <+> vsum phongs
+              (diffs, phongs) = unzip lightingTerms
+              lightingTerms   = catMaybes $ for directedLights $ \dl ->
+                let  cl       = dlColor dl
+                     l        = unitVector $ negateV $ dlDirection dl
+                     h        = unitVector $ e <+> l
+                     hn       = h<.>n
+                     m        = max 0 (n <.> l)
+                     inShadow = or $ for shapes $ \shape ->
+                       shapeShadowHit shape (Ray at l) 0.01 tmax 0
+                     c = if inShadow
+                           then Nothing
+                           else Just (m*>cl, (hn**p)*>(cl<*>cp))
+                in c
           pokePixel i j ((toWord8 (clamp (getR c)))
                         ,(toWord8 (clamp (getG c)))
                         ,(toWord8 (clamp (getB c)))) bmp

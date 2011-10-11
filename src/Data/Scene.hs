@@ -5,6 +5,7 @@ import Data.Shape
 import qualified System.IO.Strict as S
 import qualified Data.Camera as C
 import Data.VectorSpace
+import Data.Luminaire
 
 type Scene = [SceneElement]
 
@@ -21,6 +22,8 @@ data SceneElement = SESphere (SphereData Float)
                              , camNX        :: Int
                              , camNY        :: Int
                              , camApeture   :: Float }
+                  | SEDirectedLight (DirectedLight Float)
+                  | SEAmbientLight (AmbientLight Float)
   deriving (Read, Show, Eq, Ord)
 
 
@@ -61,3 +64,18 @@ readSceneToCamera :: FilePath -> IO (Maybe (C.Camera Float, Int, Int))
 readSceneToCamera fp = do
   sc <- readScene fp
   return (mkCamera sc)
+
+mkDirectedLights :: Scene -> [DirectedLight Float]
+mkDirectedLights = catMaybes . map mkDirectedLights'
+  where
+  mkDirectedLights' :: SceneElement -> Maybe (DirectedLight Float)
+  mkDirectedLights' (SEDirectedLight l) = Just l 
+  mkDirectedLights' _                   = Nothing
+
+mkAmbientLight :: Scene -> Maybe (AmbientLight Float)
+mkAmbientLight = listToMaybe . catMaybes . map mkAmbientLight'
+  where
+  mkAmbientLight' :: SceneElement -> Maybe (AmbientLight Float)
+  mkAmbientLight' (SEAmbientLight l) = Just l 
+  mkAmbientLight' _                  = Nothing
+

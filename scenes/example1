@@ -9,6 +9,9 @@
            , camNX      = 500
            , camNY      = 500
            , camApeture = 2}
+, SEDirectedLight (DirectedLight { dlDirection = Vec3 0 (-1) 0
+                                 , dlColor = Vec3 0.8 0.8 0.8 })
+, SEAmbientLight (AmbientLight { alColor = Vec3 0.2 0.2 0.2 })
 , SESphere (SphereData { sphereCenter = Vec3 250.0 250.0 (-1000.0)
                        , sphereRadius = 150.0
                        , sphereColor = Vec3 0.2 0.2 0.8})
