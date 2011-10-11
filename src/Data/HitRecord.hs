@@ -1,10 +1,12 @@
 module Data.HitRecord where
 
 import Data.VectorSpace
-import Data.RGB
+import Data.Texture
 
 data HitRecord a = HitRecord
   { hrT      :: !a
   , hrNormal :: !(Vec3 a)
-  , hrColor  :: !(RGB a)
-  } deriving (Read, Show, Eq, Ord)
+  , hrUV     :: !(Vec2 a)
+  , hrHitP   :: !(Vec3 a)
+  , hrHitTex :: !(Texture a)
+  }

@@ -12,14 +12,14 @@
 , SEDirectedLight (DirectedLight { dlDirection = Vec3 0 (-1) 0
                                  , dlColor = Vec3 0.8 0.8 0.8 })
 , SEAmbientLight (AmbientLight { alColor = Vec3 0.2 0.2 0.2 })
-, SETriangle (TriangleData { tdP0 = Vec3 (-250.0) 0.0 -100 
-                           , tdP1 = Vec3 250.0 0.0 -100 
-                           , tdP2 = Vec3 0 10 100
-                           , tdColor = Vec3 1.0 0.0 0.0})
-, SESphere (SphereData { sphereCenter = Vec3 0.0 0.0 (-30.0)
-                       , sphereRadius = 150.0
-                       , sphereColor = Vec3 1.0 0.0 0.0})
-, SEPlane (PlaneData { pdCenter = Vec3 0 (-200) 0 
-                     , pdNormal = Vec3 0 1 0
-                     , pdColor = Vec3 0 0 1 })
+, SETriangle (Triangle { tP0 = Vec3 (-250.0) 0.0 -100 
+                       , tP1 = Vec3 250.0 0.0 -100 
+                       , tP2 = Vec3 0 10 100
+                       , tTexture = Matte (Vec3 1.0 0.0 0.0)})
+, SESphere (Sphere { sCenter = Vec3 0.0 0.0 (-30.0)
+                   , sRadius = 150.0
+                   , sTexture = Matte (Vec3 1.0 0.0 0.0)})
+, SEPlane (Plane { pCenter = Vec3 0 (-200) 0
+                 , pNormal = Vec3 0 1 0
+                 , pTexture = Matte (Vec3 0 0.2 0.8) })
 ]

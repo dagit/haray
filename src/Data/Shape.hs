@@ -3,7 +3,7 @@ module Data.Shape where
 import Data.Ray
 import Data.HitRecord
 import Data.VectorSpace
-import Data.RGB
+import Data.Texture
 
 data Shape a = Shape
   { shapeHit       :: Ray a -> a -> a -> a -> Maybe (HitRecord a)
@@ -11,11 +11,11 @@ data Shape a = Shape
   }
 
 data TriangleData a = TriangleData
-  { tdP0 :: !(Vec3 a)
-  , tdP1 :: !(Vec3 a)
-  , tdP2 :: !(Vec3 a)
-  , tdColor :: !(RGB a)
-  } deriving (Read, Show, Eq, Ord)
+  { tdP0  :: !(Vec3 a)
+  , tdP1  :: !(Vec3 a)
+  , tdP2  :: !(Vec3 a)
+  , tdTex :: Texture a
+  }
 
 {-# INLINE mkTriangle #-}
 mkTriangle :: (Ord a, Floating a) => TriangleData a -> Shape a
@@ -53,9 +53,11 @@ mkTriangle td = Shape
              then Nothing
              else if tval >= tmin && tval <= tmax
                     then Just (HitRecord
-                      { hrT = tval
+                      { hrT      = tval
                       , hrNormal = unitVector ((p1 <-> p0) <%> (p2 <-> p0))
-                      , hrColor = (tdColor td)
+                      , hrHitTex = (tdTex td)
+                      , hrHitP   = (tval *> rayDirection r) <+> rayOrigin r
+                      , hrUV     = Vec2 0 0 -- TODO: implement me
                       })
                     else Nothing
   , shapeShadowHit = \r tmin tmax time ->
@@ -95,8 +97,8 @@ mkTriangle td = Shape
 data SphereData a = SphereData
   { sphereCenter :: !(Vec3 a)
   , sphereRadius :: !a
-  , sphereColor  :: !(RGB a)
-  } deriving (Read, Show, Eq, Ord)
+  , sphereTex    :: Texture a
+  }
 
 {-# INLINE mkSphere #-}
 mkSphere :: (Ord a, Floating a) => SphereData a -> Shape a
@@ -116,7 +118,9 @@ mkSphere sd = Shape
                  {hrT = at
                  ,hrNormal = unitVector (rayOrigin r <+> (at *> rayDirection r)
                                         <-> sphereCenter sd)
-                 ,hrColor = sphereColor sd
+                 ,hrHitTex = sphereTex sd
+                 ,hrHitP   = rayOrigin r <+> (at *> rayDirection r)
+                 ,hrUV     = Vec2 0 0 -- TODO: implement me
                  })
       in
       if t < tmin
@@ -148,8 +152,8 @@ mkSphere sd = Shape
 data PlaneData a = PlaneData
   { pdCenter :: !(Vec3 a)
   , pdNormal :: !(Vec3 a)
-  , pdColor  :: !(RGB a)
-  } deriving (Read, Show, Eq, Ord)
+  , pdTex    :: Texture a
+  }
 
 {-# INLINE mkPlane #-}
 mkPlane :: (Ord a, Floating a) => PlaneData a -> Shape a
@@ -170,7 +174,9 @@ mkPlane pd = Shape
              then Just $ HitRecord
                { hrT      = numer / denom
                , hrNormal = n
-               , hrColor  = pdColor pd
+               , hrHitTex = pdTex pd
+               , hrHitP   = (tval *> l) <+> l0
+               , hrUV     = Vec2 0 0 -- TODO: implement me
                }
              else Nothing
   , shapeShadowHit = \r tmin tmax time ->

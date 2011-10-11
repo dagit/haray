@@ -12,7 +12,7 @@
 , SEDirectedLight (DirectedLight { dlDirection = Vec3 0 (-1) 0
                                  , dlColor = Vec3 0.8 0.8 0.8 })
 , SEAmbientLight (AmbientLight { alColor = Vec3 0.2 0.2 0.2 })
-, SESphere (SphereData { sphereCenter = Vec3 0.0 0.0 0.0
-                       , sphereRadius = 1.41421
-                       , sphereColor = Vec3 0.8 0.8 0.8})
+, SESphere (Sphere { sCenter = Vec3 0.0 0.0 0.0
+                   , sRadius = 1.41421
+                   , sTexture = Matte (Vec3 0.8 0.8 0.8)})
 ]

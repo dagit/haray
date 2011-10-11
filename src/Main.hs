@@ -51,19 +51,18 @@ main = do
       hFlush stdout
       case hit of
         Just hr -> do
-          let cr       = hrColor hr
+          let
               ca       = alColor ambientLight
+              cr       = hrHitTex hr (Vec2 0 0) {- TODO: implement UV -} at
+              cp       = Vec3 1 1 1 <-> cr
               n        = hrNormal hr
               e        = unitVector $ negateV $ rayDirection r
-              cp       = Vec3 1 1 1 <-> cr
               p        = 32
               at       = rayOrigin r <+> (hrT hr*> rayDirection r)
               vsum     = foldl' (<+>) (Vec3 0 0 0)
-              c        = if null lightingTerms
-                           then cr <*> ca
-                           else (cr <*> (ca <+> vsum diffs)) <+> vsum phongs
+              c        = (cr <*> (ca <+> vsum diffs)) <+> vsum phongs
               (diffs, phongs) = unzip lightingTerms
-              lightingTerms   = catMaybes $ for directedLights $ \dl ->
+              lightingTerms   = for directedLights $ \dl ->
                 let  cl       = dlColor dl
                      l        = unitVector $ negateV $ dlDirection dl
                      h        = unitVector $ e <+> l
@@ -72,8 +71,8 @@ main = do
                      inShadow = or $ for shapes $ \shape ->
                        shapeShadowHit shape (Ray at l) 0.01 tmax 0
                      c = if inShadow
-                           then Nothing
-                           else Just (m*>cl, (hn**p)*>(cl<*>cp))
+                           then (Vec3 0 0 0, Vec3 0 0 0)
+                           else (m*>cl, (hn**p)*>(cl<*>cp))
                 in c
           pokePixel i j ((toWord8 (clamp (getR c)))
                         ,(toWord8 (clamp (getG c)))

@@ -1,17 +1,21 @@
 module Data.Scene where
 
 import Data.Maybe
-import Data.Shape
+-- TODO: sort out the smart constructor name mess...use a real parser?
+import Data.Shape hiding ( mkTriangle, mkSphere, mkPlane )
+import qualified Data.Shape as Shape (mkTriangle, mkSphere, mkPlane)
 import qualified System.IO.Strict as S
 import qualified Data.Camera as C
 import Data.VectorSpace
+import Data.RGB
+import Data.Texture
 import Data.Luminaire
 
 type Scene = [SceneElement]
 
-data SceneElement = SESphere (SphereData Float)
-                  | SETriangle (TriangleData Float)
-                  | SEPlane (PlaneData Float)
+data SceneElement = SESphere (Sphere Float)
+                  | SETriangle (Triangle Float)
+                  | SEPlane (Plane Float)
                   | SECamera { camEye       :: Vec3 Float
                              , camGaze      :: Vec3 Float
                              , camUp        :: Vec3 Float
@@ -27,11 +31,54 @@ data SceneElement = SESphere (SphereData Float)
                   | SEAmbientLight (AmbientLight Float)
   deriving (Read, Show, Eq, Ord)
 
+data TextureDescription a = Matte (RGB a)
+  deriving (Read, Show, Eq, Ord)
+
+mkTexture :: TextureDescription a -> Texture a
+mkTexture (Matte rgb) = mkMatteTexture (MatteData rgb)
+
+data Triangle a = Triangle
+  { tP0      :: Vec3 a
+  , tP1      :: Vec3 a
+  , tP2      :: Vec3 a
+  , tTexture :: TextureDescription a
+  } deriving (Read, Show, Eq, Ord)
+
+mkTriangle :: Triangle a -> TriangleData a
+mkTriangle (Triangle p0 p1 p2 tex) = TriangleData
+  { tdP0  = p0
+  , tdP1  = p1
+  , tdP2  = p2
+  , tdTex = mkTexture tex }
+
+data Sphere a = Sphere
+  { sCenter  :: Vec3 a
+  , sRadius  :: a
+  , sTexture :: TextureDescription a
+  } deriving (Read, Show, Eq, Ord)
+
+mkSphere :: Sphere a -> SphereData a
+mkSphere (Sphere c r tex) = SphereData
+  { sphereCenter = c
+  , sphereRadius = r
+  , sphereTex = mkTexture tex }
+
+data Plane a = Plane
+  { pCenter  :: Vec3 a
+  , pNormal  :: Vec3 a
+  , pTexture :: TextureDescription a
+  } deriving (Read, Show, Eq, Ord)
+
+mkPlane :: Plane a -> PlaneData a
+mkPlane (Plane c n tex) = PlaneData
+  { pdCenter  = c
+  , pdNormal  = n
+  , pdTex     = mkTexture tex }
 
 mkShape :: SceneElement -> Maybe (Shape Float)
-mkShape (SESphere sd)   = Just $ mkSphere sd
-mkShape (SETriangle td) = Just $ mkTriangle td
-mkShape (SEPlane pd)    = Just $ mkPlane pd
+mkShape (SESphere sd)   = Just $ Shape.mkSphere (mkSphere sd)
+mkShape (SETriangle td) = Just $ Shape.mkTriangle (mkTriangle td)
+mkShape (SEPlane pd)    = Just $ Shape.mkPlane (mkPlane pd)
 mkShape _               = Nothing
 
 mkShapes :: Scene -> [Shape Float]
