@@ -11,6 +11,7 @@ import Data.HitRecord
 import Data.VectorSpace
 import Data.Luminaire
 import Data.Bitmap
+import Data.PNG
 import Control.Monad ( forM_, when, mplus )
 import System.Environment ( getArgs )
 import System.IO ( hFlush, stdout )
@@ -18,7 +19,7 @@ import System.IO ( hFlush, stdout )
 main :: IO ()
 main = do
   args <- getArgs
-  when (length args < 2) (error "Usage: raytracer <input.scene> <output.bmp>")
+  when (length args < 2) (error "Usage: raytracer <input.scene> <output.png>")
   let outfile  = head (drop 1 args)
       input    = head args
       for      = flip map
@@ -38,7 +39,7 @@ main = do
       ambientLight     = maybe defaultAmbient id (mkAmbientLight scene)
   bmp <- allocBMP nx ny
   putStr $ "Rendering:"
-  forM_ [(ny-1), (ny-2) .. 0] $ \j ->
+  forM_ [0 .. (ny-1)] $ \j ->
     forM_ [0 .. (nx-1)] $ \i -> do
       let tmax = 100000
           r = getRay camera (((fromIntegral i)+0.5)/fromIntegral nx)
@@ -81,5 +82,5 @@ main = do
           pokePixel i j ((toWord8 0.2), (toWord8 0.2), (toWord8 0.2)) bmp
   putStrLn "Done."
   putStrLn $ "Writing to: " ++ outfile
-  writeBMP outfile bmp
+  writePNG outfile bmp
   putStrLn "Done."

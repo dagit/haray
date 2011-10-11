@@ -24,9 +24,10 @@ Library
   
   -- Packages needed in order to build this package.
   Build-depends:       base > 3 && < 5,
-                       bmp == 1.1.*,
                        bytestring == 0.9.*,
-                       strict == 0.3.*
+                       strict == 0.3.*,
+                       zlib == 0.5.*,
+                       array == 0.3.*
   
   Exposed-modules:       Data.VectorSpace,
                          Data.OrthoNormalBasis,
@@ -36,7 +37,8 @@ Library
                          Data.RGB,
                          Data.Bitmap,
                          Data.Scene,
-                         Data.Luminaire
+                         Data.Luminaire,
+                         Data.PNG
   if impl(ghc >= 7.0.1)
     ghc-prof-options: -rtsopts
   ghc-prof-options: -prof -auto-all
