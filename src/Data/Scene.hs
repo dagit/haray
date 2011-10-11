@@ -32,10 +32,12 @@ data SceneElement = SESphere (Sphere Float)
   deriving (Read, Show, Eq, Ord)
 
 data TextureDescription a = Matte (RGB a)
+  | Stripe
   deriving (Read, Show, Eq, Ord)
 
-mkTexture :: TextureDescription a -> Texture a
+mkTexture :: (Ord a, Floating a) => TextureDescription a -> Texture a
 mkTexture (Matte rgb) = mkMatteTexture (MatteData rgb)
+mkTexture Stripe = mkStripeTexture
 
 data Triangle a = Triangle
   { tP0      :: Vec3 a
@@ -44,7 +46,7 @@ data Triangle a = Triangle
   , tTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkTriangle :: Triangle a -> TriangleData a
+mkTriangle :: (Ord a, Floating a) => Triangle a -> TriangleData a
 mkTriangle (Triangle p0 p1 p2 tex) = TriangleData
   { tdP0  = p0
   , tdP1  = p1
@@ -57,7 +59,7 @@ data Sphere a = Sphere
   , sTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkSphere :: Sphere a -> SphereData a
+mkSphere :: (Ord a, Floating a) => Sphere a -> SphereData a
 mkSphere (Sphere c r tex) = SphereData
   { sphereCenter = c
   , sphereRadius = r
@@ -69,7 +71,7 @@ data Plane a = Plane
   , pTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkPlane :: Plane a -> PlaneData a
+mkPlane :: (Ord a, Floating a) => Plane a -> PlaneData a
 mkPlane (Plane c n tex) = PlaneData
   { pdCenter  = c
   , pdNormal  = n

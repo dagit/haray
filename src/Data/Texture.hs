@@ -11,3 +11,9 @@ data MatteData a = MatteData
 
 mkMatteTexture :: MatteData a -> Texture a
 mkMatteTexture (MatteData rgb) = \_ _ -> rgb
+
+mkStripeTexture :: (Ord a, Floating a) => Texture a
+mkStripeTexture = \_ (Vec3 x y z) ->
+  if sin x > 0
+    then Vec3 0 0 0
+    else Vec3 1 1 1
