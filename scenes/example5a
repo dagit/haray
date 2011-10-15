@@ -1,0 +1,27 @@
+[ SECamera { camEye     = Vec3 0.0 0.0 300.0
+           , camGaze    = Vec3 0.0 0.0 (-1.0)
+           , camUp      = Vec3 0.0 1.0 0.0
+           , camU0      = -1.2
+           , camV0      = -1.2
+           , camU1      = 1.2
+           , camV1      = 1.2
+           , camDist    = 1.0
+           , camNX      = 500
+           , camNY      = 500
+           , camApeture = 2}
+, SEDirectedLight (DirectedLight { dlDirection = Vec3 1 (-1) -1
+                                 , dlColor = Vec3 0.8 0.8 0.8 })
+, SEDirectedLight (DirectedLight { dlDirection = Vec3 0 (-1) 0
+                                 , dlColor = Vec3 0.8 0.8 0.8 })
+, SEAmbientLight (AmbientLight { alColor = Vec3 0.2 0.2 0.2 })
+, SETriangle (Triangle { tP0 = Vec3 (-250.0) 0.0 -100 
+                       , tP1 = Vec3 250.0 0.0 -100 
+                       , tP2 = Vec3 0 10 100
+                       , tTexture = Matte (Vec3 1.0 0.0 0.0)})
+, SESphere (Sphere { sCenter = Vec3 0.0 0.0 (-30.0)
+                   , sRadius = 150.0
+                   , sTexture = Matte (Vec3 1.0 0.0 0.0)})
+, SEPlane (Plane { pCenter = Vec3 0 (-200) 0
+                 , pNormal = Vec3 0 1 0
+                 , pTexture = Matte (Vec3 0 0.2 0.8) })
+]
