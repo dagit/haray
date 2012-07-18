@@ -20,22 +20,28 @@ data Mat44 a = Mat44
 
 class Vector v where
   type Scalar v :: *
+  vDim     ::                          v -> Int
   vElement :: (k ~ Scalar v)        => Int -> v -> k
   vIndexOf :: (k ~ Scalar v, Ord k) => (k -> k -> Bool) -> v -> Int
   vZip     :: (k ~ Scalar v)        => (k -> k -> k) -> v -> v -> v
   vMap     :: (k ~ Scalar v)        => (k -> k) -> v -> v
+  vIdxMap  :: (k ~ Scalar v)        => (Int -> k) -> v -> v
   vFold    :: (k ~ Scalar v)        => (k -> k -> k) -> v -> k
 
 class Matrix m where
   type Element m :: *
+  mDim     ::                           m -> Int
   mElement :: (k ~ Element m)        => Int -> Int -> m -> k
   mIndexOf :: (k ~ Element m, Ord k) => (k -> k -> Bool) -> m -> (Int, Int)
   mZip     :: (k ~ Element m)        => (k -> k -> k) -> m -> m -> m
   mMap     :: (k ~ Element m)        => (k -> k) -> m -> m
+  mIdxMap  :: (k ~ Element m)        => (Int -> Int -> k) -> m -> m
   mFold    :: (k ~ Element m)        => (k -> k -> k) -> m -> k
 
 instance Floating a => Matrix (Mat44 a) where
   type Element (Mat44 a) = a
+  {-# INLINE mDim #-}
+  mDim _ = 4
   {-# INLINE mElement #-}
   mElement 0 0 = m00
   mElement 0 1 = m01
@@ -59,6 +65,11 @@ instance Floating a => Matrix (Mat44 a) where
                    (f (m10 m)) (f (m11 m)) (f (m12 m)) (f (m13 m))
                    (f (m20 m)) (f (m21 m)) (f (m22 m)) (f (m23 m))
                    (f (m30 m)) (f (m31 m)) (f (m32 m)) (f (m33 m))
+  {-# INLINE mIdxMap #-}
+  mIdxMap f m = Mat44 (f 0 0) (f 0 1) (f 0 2) (f 0 3)
+                      (f 1 0) (f 1 1) (f 1 2) (f 1 3)
+                      (f 2 0) (f 2 1) (f 2 2) (f 2 3)
+                      (f 3 0) (f 3 1) (f 3 2) (f 3 3)
   {-# INLINE mZip #-}
   mZip f m n = Mat44 (f (m00 m) (m00 n)) (f (m01 m) (m01 n)) (f (m02 m) (m02 n)) (f (m03 m) (m03 n))
                      (f (m10 m) (m10 n)) (f (m11 m) (m11 n)) (f (m12 m) (m12 n)) (f (m13 m) (m13 n))
@@ -74,6 +85,8 @@ instance Floating a => Matrix (Mat44 a) where
 
 instance Floating a => Vector (Vec4 a) where
   type Scalar (Vec4 a) = a
+  {-# INLINE vDim #-}
+  vDim _ = 4
   {-# INLINE vElement #-}
   vElement 0 (Vec4 x _ _ _) = x
   vElement 1 (Vec4 _ y _ _) = y
@@ -82,6 +95,8 @@ instance Floating a => Vector (Vec4 a) where
   vElement i _ = error ("Index " ++ show i ++ ": out of range, must be 0 to 3")
   {-# INLINE vMap #-}
   vMap f (Vec4 x y z w) = Vec4 (f x) (f y) (f z) (f w)
+  {-# INLINE vIdxMap #-}
+  vIdxMap f (Vec4 x y z w) = Vec4 (f 0) (f 1) (f 2) (f 3)
   {-# INLINE vZip #-}
   vZip f (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = Vec4 (f x1 x2) (f y1 y2) (f z1 z2) (f w1 w2)
   {-# INLINE vFold #-}
@@ -94,6 +109,8 @@ instance Floating a => Vector (Vec4 a) where
 
 instance Floating a => Vector (Vec3 a) where
   type Scalar (Vec3 a) = a
+  {-# INLINE vDim #-}
+  vDim _ = 3
   {-# INLINE vElement #-}
   vElement 0 (Vec3 x _ _) = x
   vElement 1 (Vec3 _ y _) = y
@@ -101,6 +118,8 @@ instance Floating a => Vector (Vec3 a) where
   vElement i _ = error ("Index " ++ show i ++ ": out of range, must be 0 to 2")
   {-# INLINE vMap #-}
   vMap f (Vec3 x y z) = Vec3 (f x) (f y) (f z)
+  {-# INLINE vIdxMap #-}
+  vIdxMap f (Vec3 x y z) = Vec3 (f 0) (f 1) (f 2)
   {-# INLINE vZip #-}
   vZip f (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (f x1 x2) (f y1 y2) (f z1 z2)
   {-# INLINE vFold #-}
@@ -112,12 +131,16 @@ instance Floating a => Vector (Vec3 a) where
 
 instance Floating a => Vector (Vec2 a) where
   type Scalar (Vec2 a) = a
+  {-# INLINE vDim #-}
+  vDim _ = 2
   {-# INLINE vElement #-}
   vElement 0 (Vec2 x _) = x
   vElement 1 (Vec2 _ y) = y
   vElement i _ = error ("Index " ++ show i ++ ": out of range, must be 0 or 1")
   {-# INLINE vMap #-}
   vMap f (Vec2 x y) = Vec2 (f x) (f y)
+  {-# INLINE vIdxMap #-}
+  vIdxMap f (Vec2 x y) = Vec2 (f 0) (f 1)
   {-# INLINE vZip #-}
   vZip f (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (f x1 x2) (f y1 y2)
   {-# INLINE vFold #-}
@@ -156,6 +179,99 @@ len v = sqrt $ lenSquared v
 {-# INLINE lenSquared #-}
 lenSquared :: (k ~ Scalar v, Num k, Vector v) => v -> k
 lenSquared v = v <.> v
+
+(.+.) :: (k ~ Element m, Num k, Matrix m) => m -> m -> m
+(.+.) = mZip (+)
+(.-.) :: (k ~ Element m, Num k, Matrix m) => m -> m -> m
+(.-.) = mZip (-)
+(.*.) :: (k ~ Element m, Num k, Matrix m) => m -> m -> m
+m .*. n = flip mIdxMap m $ \i j -> sum [ mElement i k m * mElement k j n | k <- [ 0 .. 3 ] ]
+(.*>) :: (k ~ Element m, k ~ Scalar v, Num k, Matrix m, Vector v)
+      => m -> v -> v
+m .*> v | vDim v == mDim m = flip vIdxMap v $ \k -> sum [ mElement i k m * vElement k v | i <- [ 0 .. mDim m ] ]
+        | otherwise        = error "Dimensions do not match"
+(*.) :: (k ~ Element m, Num k, Matrix m) => m -> k -> m
+m *. k = mMap (k*) m
+
+det3 :: Num a
+     => a -> a -> a
+     -> a -> a -> a
+     -> a -> a -> a
+     -> a
+det3 a b c d e f g h i = a*e*i + d*h*c + g*b*f - g*e*c - d*b*i - a*h*f
+
+determinant :: Num a => Mat44 a -> a
+determinant m = m00 m * det3 (m11 m) (m12 m) (m13 m)
+                             (m21 m) (m22 m) (m23 m)
+                             (m31 m) (m32 m) (m33 m)
+              - m01 m * det3 (m10 m) (m12 m) (m13 m)
+                             (m20 m) (m22 m) (m23 m)
+                             (m30 m) (m32 m) (m33 m)
+              + m02 m * det3 (m10 m) (m11 m) (m13 m)
+                             (m20 m) (m21 m) (m23 m)
+                             (m30 m) (m31 m) (m33 m)
+              - m03 m * det3 (m10 m) (m11 m) (m12 m)
+                             (m20 m) (m21 m) (m22 m)
+                             (m30 m) (m31 m) (m32 m)
+
+invert :: Fractional a => Mat44 a -> Mat44 a
+invert m = m'
+  where
+  det = determinant m
+  m'  = Mat44 (det3 (m11 m) (m12 m) (m13 m)
+                    (m21 m) (m22 m) (m23 m)
+                    (m31 m) (m32 m) (m33 m) / det)
+            (-(det3 (m01 m) (m02 m) (m03 m)
+                    (m21 m) (m22 m) (m23 m)
+                    (m31 m) (m32 m) (m33 m) / det))
+              (det3 (m01 m) (m02 m) (m03 m)
+                    (m11 m) (m12 m) (m13 m)
+                    (m31 m) (m32 m) (m33 m) / det)
+            (-(det3 (m01 m) (m02 m) (m03 m)
+                    (m11 m) (m12 m) (m13 m)
+                    (m21 m) (m22 m) (m23 m) / det))
+              
+            (-(det3 (m10 m) (m12 m) (m13 m)
+                    (m20 m) (m22 m) (m23 m)
+                    (m30 m) (m32 m) (m33 m) / det))
+              (det3 (m00 m) (m02 m) (m03 m)
+                    (m20 m) (m22 m) (m23 m)
+                    (m30 m) (m32 m) (m33 m) / det)
+            (-(det3 (m00 m) (m02 m) (m03 m)
+                    (m10 m) (m12 m) (m13 m)
+                    (m30 m) (m32 m) (m33 m) / det))
+              (det3 (m00 m) (m02 m) (m03 m)
+                    (m10 m) (m12 m) (m13 m)
+                    (m20 m) (m22 m) (m23 m) / det)
+
+              (det3 (m10 m) (m11 m) (m13 m)
+                    (m20 m) (m21 m) (m23 m)
+                    (m30 m) (m31 m) (m33 m) / det)
+            (-(det3 (m00 m) (m01 m) (m03 m)
+                    (m20 m) (m21 m) (m23 m)
+                    (m30 m) (m31 m) (m33 m) / det))
+              (det3 (m00 m) (m01 m) (m03 m)
+                    (m10 m) (m11 m) (m13 m)
+                    (m30 m) (m31 m) (m33 m) / det)
+            (-(det3 (m00 m) (m01 m) (m03 m)
+                    (m10 m) (m11 m) (m13 m)
+                    (m20 m) (m21 m) (m23 m) / det))
+
+            (-(det3 (m10 m) (m11 m) (m12 m)
+                    (m20 m) (m21 m) (m22 m)
+                    (m30 m) (m31 m) (m32 m) / det))
+              (det3 (m00 m) (m01 m) (m02 m)
+                    (m20 m) (m21 m) (m22 m)
+                    (m30 m) (m31 m) (m32 m) / det)
+            (-(det3 (m00 m) (m01 m) (m02 m)
+                    (m10 m) (m11 m) (m12 m)
+                    (m30 m) (m31 m) (m32 m) / det))
+              (det3 (m00 m) (m01 m) (m02 m)
+                    (m10 m) (m11 m) (m12 m)
+                    (m20 m) (m21 m) (m22 m) / det)
+
+transpose :: Matrix m => m -> m
+transpose m = flip mIdxMap m $ \i j -> mElement j i m
 
 maxVec :: (k ~ Scalar v, Ord k, Vector v) => v -> v -> v
 maxVec = vZip max
