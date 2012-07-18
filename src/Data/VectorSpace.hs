@@ -1,6 +1,8 @@
 {-# LANGUAGE TypeFamilies #-}
 module Data.VectorSpace where
 
+data Vec4 a = Vec4 !a !a !a !a
+  deriving (Read, Show, Eq, Ord)
 data Vec3 a = Vec3 !a !a !a
   deriving (Read, Show, Eq, Ord)
 data Vec2 a = Vec2 !a !a
@@ -13,6 +15,26 @@ class VectorSpace v where
   zipV  :: (k ~ Scalar v) => (k -> k -> k) -> v -> v -> v
   mapV  :: (k ~ Scalar v) => (k -> k) -> v -> v
   foldV :: (k ~ Scalar v) => (k -> k -> k) -> v -> k
+
+instance Floating a => VectorSpace (Vec4 a) where
+  type Scalar (Vec4 a) = a
+  {-# INLINE element #-}
+  element 0 (Vec4 x _ _ _) = x
+  element 1 (Vec4 _ y _ _) = y
+  element 2 (Vec4 _ _ z _) = z
+  element 3 (Vec4 _ _ _ w) = w
+  element i _ = error ("Index " ++ show i ++ ": out of range, must be 0 to 3")
+  {-# INLINE mapV #-}
+  mapV f (Vec4 x y z w) = Vec4 (f x) (f y) (f z) (f w)
+  {-# INLINE zipV #-}
+  zipV f (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = Vec4 (f x1 x2) (f y1 y2) (f z1 z2) (f w1 w2)
+  {-# INLINE foldV #-}
+  foldV f (Vec4 x y z w) = f (f (f x y) z) w
+  {-# INLINE indexOf #-}
+  indexOf p (Vec4 x y z w) | w `p` x && w `p` y && w `p` z = 3
+                           | z `p` x && z `p` y && z `p` w = 2
+                           | y `p` x && y `p` z && y `p` w = 1
+                           | otherwise = 0
 
 instance Floating a => VectorSpace (Vec3 a) where
   type Scalar (Vec3 a) = a
