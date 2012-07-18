@@ -8,38 +8,43 @@ data Vec2 a = Vec2 !a !a
 
 class VectorSpace v where
   type Scalar v :: *
-  {-# INLINE element #-}
   element :: (k ~ Scalar v) => Int -> v -> k
-  {-# INLINE indexOf #-}
   indexOf :: (k ~ Scalar v, Ord k) => (k -> k -> Bool) -> v -> Int
-  {-# INLINE zipV #-}
   zipV  :: (k ~ Scalar v) => (k -> k -> k) -> v -> v -> v
-  {-# INLINE mapV #-}
   mapV  :: (k ~ Scalar v) => (k -> k) -> v -> v
-  {-# INLINE foldV #-}
   foldV :: (k ~ Scalar v) => (k -> k -> k) -> v -> k
 
 instance Floating a => VectorSpace (Vec3 a) where
   type Scalar (Vec3 a) = a
+  {-# INLINE element #-}
   element 0 (Vec3 x _ _) = x
   element 1 (Vec3 _ y _) = y
   element 2 (Vec3 _ _ z) = z
   element i _ = error ("Index " ++ show i ++ ": out of range, must be 0 to 2")
+  {-# INLINE mapV #-}
   mapV f (Vec3 x y z) = Vec3 (f x) (f y) (f z)
+  {-# INLINE zipV #-}
   zipV f (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (f x1 x2) (f y1 y2) (f z1 z2)
+  {-# INLINE foldV #-}
   foldV f (Vec3 x y z) = f (f x y) z
+  {-# INLINE indexOf #-}
   indexOf p (Vec3 x y z) | z `p` x && z `p` y = 2
                          | y `p` x && y `p` z = 1
                          | otherwise = 0
 
 instance Floating a => VectorSpace (Vec2 a) where
   type Scalar (Vec2 a) = a
+  {-# INLINE element #-}
   element 0 (Vec2 x _) = x
   element 1 (Vec2 _ y) = y
   element i _ = error ("Index " ++ show i ++ ": out of range, must be 0 or 1")
+  {-# INLINE mapV #-}
   mapV f (Vec2 x y) = Vec2 (f x) (f y)
+  {-# INLINE zipV #-}
   zipV f (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (f x1 x2) (f y1 y2)
+  {-# INLINE foldV #-}
   foldV f (Vec2 x y) = f x y
+  {-# INLINE indexOf #-}
   indexOf p (Vec2 x y) | y `p` x   = 1
                        | otherwise = 0
 

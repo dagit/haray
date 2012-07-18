@@ -27,7 +27,7 @@ Library
                        bytestring == 0.9.*,
                        strict == 0.3.*,
                        zlib == 0.5.*,
-                       array == 0.3.*
+                       array >= 0.3 && < 0.5
   
   Exposed-modules:       Data.VectorSpace,
                          Data.OrthoNormalBasis,
