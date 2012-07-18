@@ -22,7 +22,7 @@ mkCamera :: Floating a => Vec3 a -> Vec3 a -> Vec3 a -> a -> a
          -> a -> a -> a -> a -> Camera a
 mkCamera c gaze vup apeture left right bottom top distance =
   let lensRadius = apeture/2
-      uvw = mkFromWV (negateV gaze) vup
+      uvw = mkFromWV (vNegate gaze) vup
       corner = c <+> (left*>(onbU uvw))
                  <+> (bottom*>(onbV uvw))
                  <-> (distance*>(onbW uvw))

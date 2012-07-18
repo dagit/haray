@@ -10,9 +10,9 @@ type RGB a = Vec3 a
 {-# INLINE getG #-}
 {-# INLINE getB #-}
 getR, getG, getB :: Floating a => RGB a -> a
-getR = element 0
-getG = element 1
-getB = element 2
+getR = vElement 0
+getG = vElement 1
+getB = vElement 2
 
 white, black :: Num a => RGB a
 white = Vec3 1 1 1
