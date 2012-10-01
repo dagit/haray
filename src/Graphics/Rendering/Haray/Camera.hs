@@ -1,8 +1,8 @@
-module Data.Camera where
+module Graphics.Rendering.Haray.Camera where
 
-import Data.VectorSpace
-import Data.OrthoNormalBasis
-import Data.Ray
+import Numeric.LinearAlgebra.Vector
+import Numeric.LinearAlgebra.OrthoNormalBasis
+import Graphics.Rendering.Haray.Ray
 
 data Camera a = Camera
   { camCenter     :: !(Vec3 a)

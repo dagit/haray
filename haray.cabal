@@ -3,7 +3,7 @@ Version:             0.1
 License:             BSD3
 License-file:        LICENSE
 Author:              Jason Dagit
-Maintainer:          dagit@codersbase.com
+Maintainer:          dagitj@gmail.com
 Category:            Graphics
 Build-type:          Simple
 Cabal-version:       >=1.2
@@ -15,34 +15,36 @@ Executable haray
   if impl(ghc >= 7.0.1)
     ghc-prof-options: -rtsopts
   ghc-prof-options: -prof -auto-all
-  ghc-options: -O2 -funbox-strict-fields
+  ghc-options: -O2 -funbox-strict-fields -Wall
 
 Library
-  -- .hs or .lhs file containing the Main module.
-  -- Main-is:             
   hs-source-dirs: src
   
   -- Packages needed in order to build this package.
-  Build-depends:       base > 3 && < 5,
-                       bytestring == 0.9.*,
-                       strict == 0.3.*,
-                       zlib == 0.5.*,
-                       array >= 0.3 && < 0.5
+  Build-depends:       base         > 3 && < 5
+                     , bytestring   == 0.9.*
+                     , strict       == 0.3.*
+                     , zlib         == 0.5.*
+                     , array        >= 0.3 && < 0.5
+                     , lin-alg      == 0.1.*
+                     , NumInstances == 1.*
+                     , JuicyPixels  == 2.0.*
+                     , vector       == 0.9.*
+                     , transformers >= 0.2.2 && < 0.4
   
-  Exposed-modules:       Data.VectorSpace,
-                         Data.OrthoNormalBasis,
-                         Data.Camera,
-                         Data.Ray,
-                         Data.Shape,
-                         Data.RGB,
-                         Data.Bitmap,
-                         Data.Scene,
-                         Data.Luminaire,
-                         Data.PNG
+  Exposed-modules:     Graphics.Rendering.Haray.Camera
+                     , Graphics.Rendering.Haray.Ray
+                     , Graphics.Rendering.Haray.Shape
+                     , Graphics.Rendering.Haray.RGB
+                     , Graphics.Rendering.Haray.Bitmap
+                     , Graphics.Rendering.Haray.Scene
+                     , Graphics.Rendering.Haray.Luminaire
+                     , Graphics.Rendering.Haray.Texture
+                     , Graphics.Rendering.Haray.HitRecord
   if impl(ghc >= 7.0.1)
     ghc-prof-options: -rtsopts
   ghc-prof-options: -prof -auto-all
-  ghc-options: -O2 -funbox-strict-fields
+  ghc-options: -O2 -funbox-strict-fields -Wall
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         

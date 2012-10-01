@@ -1,7 +1,7 @@
-module Data.HitRecord where
+module Graphics.Rendering.Haray.HitRecord where
 
-import Data.VectorSpace
-import Data.Texture
+import Numeric.LinearAlgebra.Vector
+import Graphics.Rendering.Haray.Texture
 
 data HitRecord a = HitRecord
   { hrT      :: !a

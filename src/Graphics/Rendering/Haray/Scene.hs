@@ -1,15 +1,15 @@
-module Data.Scene where
+module Graphics.Rendering.Haray.Scene where
 
 import Data.Maybe
 -- TODO: sort out the smart constructor name mess...use a real parser?
-import Data.Shape hiding ( mkTriangle, mkSphere, mkPlane )
-import qualified Data.Shape as Shape (mkTriangle, mkSphere, mkPlane)
+import Graphics.Rendering.Haray.Shape hiding ( mkTriangle, mkSphere, mkPlane )
+import qualified Graphics.Rendering.Haray.Shape as Shape (mkTriangle, mkSphere, mkPlane)
 import qualified System.IO.Strict as S
-import qualified Data.Camera as C
-import Data.VectorSpace
-import Data.RGB
-import Data.Texture
-import Data.Luminaire
+import qualified Graphics.Rendering.Haray.Camera as C
+import Numeric.LinearAlgebra.Vector
+import Graphics.Rendering.Haray.RGB
+import Graphics.Rendering.Haray.Texture
+import Graphics.Rendering.Haray.Luminaire
 
 type Scene = [SceneElement]
 

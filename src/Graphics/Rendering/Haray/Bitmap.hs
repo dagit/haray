@@ -1,40 +1,29 @@
-module Data.Bitmap
-( BMP(..)
-, allocBMP 
-, pokePixel
-) where
+module Graphics.Rendering.Haray.Bitmap where
 
-import Data.Word (Word8)
-import Foreign.ForeignPtr
-import Foreign.Storable
+import Codec.Picture.Types
+import Codec.Picture.Png
+import Data.Vector.Storable.Mutable
+import Control.Monad.ST
+import Data.Vector.Storable ( freeze )
 
-type RGB = (Word8, Word8, Word8)
+mkImage :: Int -> Int -> ST s (MutableImage s PixelRGB8)
+mkImage width height = do
+  let compCount = componentCount (undefined :: PixelRGB8)
+  v <- new (width * height * compCount)
+  return $! MutableImage { mutableImageWidth  = width
+                         , mutableImageHeight = height
+                         , mutableImageData   = v }
 
-rgbaSize :: Int
-rgbaSize = 3
+writePixelRGBIO :: MutableImage RealWorld PixelRGB8 -> Int -> Int -> PixelRGB8 -> IO ()
+writePixelRGBIO bmp x y p = stToIO (writePixel bmp x (h - y - 1) p)
+  where
+  h = mutableImageHeight bmp
 
-data BMP = BMP
-  { bmpChunk  :: !(ForeignPtr Word8)
-  , bmpWidth  :: !Int
-  , bmpHeight :: !Int }
+writePngRGB8 :: FilePath -> MutableImage RealWorld PixelRGB8 -> IO ()
+writePngRGB8 outfile bmp = do
+  imageD <- freeze (mutableImageData bmp)
+  writePng outfile (Image { imageWidth  = mutableImageWidth bmp
+                          , imageHeight = mutableImageHeight bmp
+                          , imageData   = imageD
+                          } :: Image PixelRGB8)
 
-allocBMP :: Int -> Int -> IO BMP
-allocBMP width height = do
-  mem <- mallocForeignPtrBytes sz
-  return $! BMP mem width height
-  where sz = rgbaSize * width * height
-
-{-# INLINE pokePixel #-}
-pokePixel :: Int -> Int -> RGB -> BMP -> IO ()
-pokePixel x y _ (BMP chnk w h)
-  | x < 0 || x > w || y < 0 || y > h = error "pokePixel: out of bounds"
-pokePixel x y rgb bmp@(BMP _ _ h) = unsafePokePixel x (h - y + 1) rgb bmp
-
-{-# INLINE unsafePokePixel #-}
-unsafePokePixel :: Int -> Int -> RGB -> BMP -> IO ()
-unsafePokePixel x y (r,g,b) (BMP mem w _) = do
-  let off = x*rgbaSize + y*w*rgbaSize
-  withForeignPtr mem $ \ptr -> do
-    pokeElemOff ptr off r
-    pokeElemOff ptr (off+1) g
-    pokeElemOff ptr (off+2) b

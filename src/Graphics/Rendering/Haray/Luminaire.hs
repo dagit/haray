@@ -1,7 +1,7 @@
-module Data.Luminaire where
+module Graphics.Rendering.Haray.Luminaire where
 
-import Data.VectorSpace
-import Data.RGB
+import Numeric.LinearAlgebra.Vector
+import Graphics.Rendering.Haray.RGB
 
 data DirectedLight a = DirectedLight
   { dlDirection :: !(Vec3 a)

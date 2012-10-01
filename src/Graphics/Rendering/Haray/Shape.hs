@@ -1,9 +1,9 @@
-module Data.Shape where
+module Graphics.Rendering.Haray.Shape where
 
-import Data.Ray
-import Data.HitRecord
-import Data.VectorSpace
-import Data.Texture
+import Graphics.Rendering.Haray.Ray
+import Graphics.Rendering.Haray.HitRecord
+import Graphics.Rendering.Haray.Texture
+import Numeric.LinearAlgebra.Vector
 
 data Shape a = Shape
   { shapeHit       :: Ray a -> a -> a -> a -> Maybe (HitRecord a)
@@ -20,22 +20,22 @@ data TriangleData a = TriangleData
 {-# INLINE mkTriangle #-}
 mkTriangle :: (Ord a, Floating a) => TriangleData a -> Shape a
 mkTriangle td = Shape
-  { shapeHit = \r tmin tmax time -> {-# SCC "triangleShapeHit" #-}
+  { shapeHit = \r tmin tmax _time -> {-# SCC "triangleShapeHit" #-}
     let p0 = tdP0 td
         p1 = tdP1 td
         p2 = tdP2 td
-        a = vElement 0 p0 - vElement 0 p1 
-        b = vElement 1 p0 - vElement 1 p1 
-        c = vElement 2 p0 - vElement 2 p1
-        d = vElement 0 p0 - vElement 0 p2
-        e = vElement 1 p0 - vElement 1 p2
-        f = vElement 2 p0 - vElement 2 p2
-        g = vElement 0 (rayDirection r)
-        h = vElement 1 (rayDirection r)
-        i = vElement 2 (rayDirection r)
-        j = vElement 0 p0 - vElement 0 (rayOrigin r)
-        k = vElement 1 p0 - vElement 1 (rayOrigin r)
-        l = vElement 2 p0 - vElement 2 (rayOrigin r)
+        a = vElement p0               0 - vElement p1 0 
+        b = vElement p0               1 - vElement p1 1 
+        c = vElement p0               2 - vElement p1 2
+        d = vElement p0               0 - vElement p2 0
+        e = vElement p0               1 - vElement p2 1
+        f = vElement p0               2 - vElement p2 2
+        g = vElement (rayDirection r) 0
+        h = vElement (rayDirection r) 1
+        i = vElement (rayDirection r) 2
+        j = vElement p0               0 - vElement (rayOrigin r) 0
+        k = vElement p0               1 - vElement (rayOrigin r) 1
+        l = vElement p0               2 - vElement (rayOrigin r) 2
         eihf = e*i-h*f
         gfdi = g*f-d*i
         dheg = d*h-e*g
@@ -60,22 +60,22 @@ mkTriangle td = Shape
                       , hrUV     = Vec2 0 0 -- TODO: implement me
                       })
                     else Nothing
-  , shapeShadowHit = \r tmin tmax time ->
+  , shapeShadowHit = \r tmin tmax _time ->
     let p0 = tdP0 td
         p1 = tdP1 td
         p2 = tdP2 td
-        a = vElement 0 p0 - vElement 0 p1 
-        b = vElement 1 p0 - vElement 1 p1 
-        c = vElement 2 p0 - vElement 2 p1
-        d = vElement 0 p0 - vElement 0 p2
-        e = vElement 1 p0 - vElement 1 p2
-        f = vElement 2 p0 - vElement 2 p2
-        g = vElement 0 (rayDirection r)
-        h = vElement 1 (rayDirection r)
-        i = vElement 2 (rayDirection r)
-        j = vElement 0 p0 - vElement 0 (rayOrigin r)
-        k = vElement 1 p0 - vElement 1 (rayOrigin r)
-        l = vElement 2 p0 - vElement 2 (rayOrigin r)
+        a = vElement p0               0 - vElement p1 0
+        b = vElement p0               1 - vElement p1 1
+        c = vElement p0               2 - vElement p1 2
+        d = vElement p0               0 - vElement p2 0
+        e = vElement p0               1 - vElement p2 1
+        f = vElement p0               2 - vElement p2 2
+        g = vElement (rayDirection r) 0
+        h = vElement (rayDirection r) 1
+        i = vElement (rayDirection r) 2
+        j = vElement p0               0 - vElement (rayOrigin r) 0
+        k = vElement p0               1 - vElement (rayOrigin r) 1
+        l = vElement p0               2 - vElement (rayOrigin r) 2
         eihf = e*i-h*f
         gfdi = g*f-d*i
         dheg = d*h-e*g
@@ -103,7 +103,7 @@ data SphereData a = SphereData
 {-# INLINE mkSphere #-}
 mkSphere :: (Ord a, Floating a) => SphereData a -> Shape a
 mkSphere sd = Shape
-  { shapeHit = \r tmin tmax time -> {-# SCC "sphereShapeHit" #-}
+  { shapeHit = \r tmin tmax _time -> {-# SCC "sphereShapeHit" #-}
     let temp = rayOrigin r <-> sphereCenter sd
         a = rayDirection r <.> rayDirection r
         b = 2*(rayDirection r <.> temp)
@@ -129,7 +129,7 @@ mkSphere sd = Shape
                else getHit t'
         else getHit t
       else Nothing
-  , shapeShadowHit = \r tmin tmax time ->
+  , shapeShadowHit = \r tmin tmax _time ->
     let temp = rayOrigin r <-> sphereCenter sd
         a = rayDirection r <.> rayDirection r
         b = 2*(rayDirection r <.> temp)
@@ -158,7 +158,7 @@ data PlaneData a = PlaneData
 {-# INLINE mkPlane #-}
 mkPlane :: (Ord a, Floating a) => PlaneData a -> Shape a
 mkPlane pd = Shape
-  { shapeHit = \r tmin tmax time ->
+  { shapeHit = \r tmin tmax _time ->
     let n   = pdNormal pd
         p0  = pdCenter pd
         l   = rayDirection r
@@ -179,7 +179,7 @@ mkPlane pd = Shape
                , hrUV     = Vec2 0 0 -- TODO: implement me
                }
              else Nothing
-  , shapeShadowHit = \r tmin tmax time ->
+  , shapeShadowHit = \r tmin tmax _time ->
     let n   = pdNormal pd
         p0  = pdCenter pd
         l   = rayDirection r

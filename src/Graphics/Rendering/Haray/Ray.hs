@@ -1,6 +1,6 @@
-module Data.Ray where
+module Graphics.Rendering.Haray.Ray where
 
-import Data.VectorSpace
+import Numeric.LinearAlgebra.Vector
 
 data Ray a = Ray
   { rayOrigin    :: !(Vec3 a)

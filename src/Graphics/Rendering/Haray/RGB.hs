@@ -1,7 +1,6 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Data.RGB where
+module Graphics.Rendering.Haray.RGB where
 
-import Data.VectorSpace
+import Numeric.LinearAlgebra.Vector
 import Data.Word
 
 type RGB a = Vec3 a
@@ -10,9 +9,9 @@ type RGB a = Vec3 a
 {-# INLINE getG #-}
 {-# INLINE getB #-}
 getR, getG, getB :: Floating a => RGB a -> a
-getR = vElement 0
-getG = vElement 1
-getB = vElement 2
+getR = flip vElement 0
+getG = flip vElement 1
+getB = flip vElement 2
 
 white, black :: Num a => RGB a
 white = Vec3 1 1 1
@@ -28,6 +27,7 @@ clamp f | f >= 1 = 1
         | f <= 0 = 0
         | otherwise = f
 
+gamma :: Fractional a => a
 gamma = 2.2
 
 toWord8Gamma :: (Ord a, Enum a, Floating a) => a -> a -> Word8
