@@ -1,4 +1,5 @@
-module Main where
+module Graphics.Rendering.Haray.Render where
+
 
 import Data.List
 import Data.Maybe
@@ -12,34 +13,40 @@ import Graphics.Rendering.Haray.Luminaire
 import Graphics.Rendering.Haray.Bitmap
 import Numeric.LinearAlgebra.Vector
 import Control.Monad ( forM_, when )
-import Control.Monad.ST ( stToIO )
-import System.Environment ( getArgs )
+import Control.Monad.ST ( stToIO, RealWorld )
 import System.IO ( hFlush, stdout )
-import Codec.Picture.Types
+import Codec.Picture.Types ( MutableImage(..), PixelRGB8(..) )
 
-main :: IO ()
-main = do
-  args <- getArgs
-  when (length args < 2) (error "Usage: haray <input.scene> <output.png>")
-  let outfile  = head (drop 1 args)
-      input    = head args
-      for      = flip map
-      comp x y = hrT x `compare` hrT y
-      defaultCamera = (C.mkCamera (Vec3 0.0 0.0 0.0)
-                                  (Vec3 0.0 0.0 (-1))
-                                  (Vec3 0 1 0) 2 (-2) 2 (-2) 2 1, 500, 500)
-      -- defaultDL = DirectedLight (Vec3 0 (-1) 0)
-      --                          (Vec3 0.8 0.8 0.8 :: Vec3 Double)
-      defaultAmbient = AmbientLight (Vec3 0.2 0.2 0.2)
-  putStrLn $ "Reading scene: " ++ input
-  scene <- readScene input
+renderSceneFromTo :: FilePath -> FilePath -> IO ()
+renderSceneFromTo from to = do
+  img <- renderSceneFromFile from 
+  putStrLn $ "Writing to: " ++ to
+  writePngRGB8 to img
+
+renderSceneFromFile :: FilePath -> IO (MutableImage RealWorld PixelRGB8)
+renderSceneFromFile from = do
+  putStrLn $ "Reading scene: " ++ from
+  scene <- readScene from
+  putStr $ "Rendering:"
+  renderScene scene
+
+renderScene :: [SceneElement] -> IO (MutableImage RealWorld PixelRGB8)
+renderScene scene = do
   let (camera, nx, ny) = maybe defaultCamera id c'
       c'               = S.mkCamera scene
       shapes           = mkShapes scene
       directedLights   = mkDirectedLights scene
       ambientLight     = maybe defaultAmbient id (mkAmbientLight scene)
-  bmp <- stToIO $ mkImage nx ny
-  putStr $ "Rendering:"
+      for              = flip map
+      comp x y         = hrT x `compare` hrT y
+      -- TODO: make these defaults configurable
+      defaultCamera    = (C.mkCamera (Vec3 0.0 0.0 0.0)
+                                     (Vec3 0.0 0.0 (-1))
+                                     (Vec3 0 1 0) 2 (-2) 2 (-2) 2 1, 500, 500)
+      -- defaultDL = DirectedLight (Vec3 0 (-1) 0)
+      --                          (Vec3 0.8 0.8 0.8 :: Vec3 Double)
+      defaultAmbient = AmbientLight (Vec3 0.2 0.2 0.2)
+  img <- stToIO $ mkImage nx ny
   forM_ [0 .. (ny-1)] $ \j ->
     forM_ [0 .. (nx-1)] $ \i -> do
       let tmax = 100000
@@ -76,12 +83,9 @@ main = do
                            then (Vec3 0 0 0, Vec3 0 0 0)
                            else (m*>cl, (hn**p)*>(cl<*>cp))
                 in sc
-          writePixelRGBIO bmp i j (PixelRGB8 (toWord8 (clamp (getR c)))
+          writePixelRGBIO img i j (PixelRGB8 (toWord8 (clamp (getR c)))
                                              (toWord8 (clamp (getG c)))
                                              (toWord8 (clamp (getB c))))
         Nothing ->
-          writePixelRGBIO bmp i j (PixelRGB8 (toWord8 (0.2::Double)) (toWord8 (0.2::Double)) (toWord8 (0.2::Double)))
-  putStrLn "Done."
-  putStrLn $ "Writing to: " ++ outfile
-  writePngRGB8 outfile bmp
-  putStrLn "Done."
+          writePixelRGBIO img i j (PixelRGB8 (toWord8 (0.2::Double)) (toWord8 (0.2::Double)) (toWord8 (0.2::Double)))
+  return img 
