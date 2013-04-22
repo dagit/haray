@@ -6,12 +6,16 @@ Author:              Jason Dagit
 Maintainer:          dagitj@gmail.com
 Category:            Graphics
 Build-type:          Simple
-Cabal-version:       >=1.2
+Cabal-version:       >=1.8
 
 Executable haray
   hs-source-dirs: src
   Main-is: Main.hs
   build-depends: base > 3 && < 5
+               , JuicyPixels < 4
+               , lin-alg     == 0.1.*
+               , vector       < 1
+               , strict       == 0.3.*
   if impl(ghc >= 7.0.1)
     ghc-prof-options: -rtsopts
   ghc-prof-options: -prof -auto-all
@@ -22,14 +26,14 @@ Library
   
   -- Packages needed in order to build this package.
   Build-depends:       base         > 3 && < 5
-                     , bytestring   == 0.9.*
+                     , bytestring   < 1
                      , strict       == 0.3.*
                      , zlib         == 0.5.*
                      , array        >= 0.3 && < 0.5
                      , lin-alg      == 0.1.*
                      , NumInstances == 1.*
-                     , JuicyPixels  == 2.0.*
-                     , vector       == 0.9.*
+                     , JuicyPixels  < 4
+                     , vector       < 1
                      , transformers >= 0.2.2 && < 0.4
   
   Exposed-modules:     Graphics.Rendering.Haray.Camera
