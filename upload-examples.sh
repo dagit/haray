@@ -9,7 +9,7 @@ for png in output/*.png
 do
   img=$(basename ${png})
   alt=$(basename ${png} .png)
-  imgs="${imgs}<a href=\"${img}\"><img src=\"${img}\" alt=\"${alt}\" /></a>"
+  imgs="${imgs}<a href=\"${alt}.txt\"><img src=\"${img}\" alt=\"${alt}\" /></a>"
 done
 
 cat > output/index.html <<EOF
@@ -32,5 +32,10 @@ cat > output/index.html <<EOF
 EOF
 
 scp output/* gutenberg:public_html/haray/
+for scn in scenes/*
+do
+  scp ${scn} gutenberg:public_html/haray/$(basename ${scn}).txt
+done
+
 ssh gutenberg 'chmod a+r public_html/haray/*'
 
