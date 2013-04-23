@@ -21,10 +21,10 @@ mkStripeTexture = \_ (Vec3 x _ _) ->
     else Vec3 1 1 1
 
 data NoiseData a = NoiseData
-  { ndScale      :: a
-  , ndColor0     :: RGB a
-  , ndColor1     :: RGB a
-  , ndSolidNoise :: SolidNoise a
+  { ndScale      :: !a
+  , ndColor0     :: !(RGB a)
+  , ndColor1     :: !(RGB a)
+  , ndSolidNoise :: !(SolidNoise a)
   } deriving (Read, Show, Eq, Ord)
 
 mkNoiseTexture :: (RealFrac a, Floating a) => NoiseData a -> Texture a
@@ -41,3 +41,35 @@ mkBWNoiseTexture = do
              , ndColor0     = Vec3 1.0 1.0 1.0
              , ndColor1     = Vec3 0.0 0.0 0.0
              , ndSolidNoise = sn }))
+
+data MarbleData a = MarbleData
+  { mdFreq       :: !a
+  , mdScale      :: !a
+  , mdOctaves    :: !Int
+  , mdColor0     :: !(RGB a)
+  , mdColor1     :: !(RGB a)
+  , mdColor2     :: !(RGB a)
+  , mdSolidNoise :: !(SolidNoise a)
+  } deriving (Read, Show, Eq, Ord)
+
+mkMarbleData :: Floating a => a -> IO (MarbleData a)
+mkMarbleData stripes_per_unit = do
+  sn <- mkSolidNoise
+  return (MarbleData
+           { mdFreq       = pi * stripes_per_unit
+           , mdScale      = 5
+           , mdOctaves    = 8
+           , mdColor0     = Vec3 0.8  0.8  0.8
+           , mdColor1     = Vec3 0.4  0.2  0.1
+           , mdColor2     = Vec3 0.06 0.04 0.02
+           , mdSolidNoise = sn })
+
+mkMarbleTexture :: (Floating a, RealFrac a) => MarbleData a -> Texture a
+mkMarbleTexture md =
+  \_ p@(Vec3 x _ _) -> let !temp = mdScale md * turbulence (mdSolidNoise md) ((mdFreq md) *> p) (mdOctaves md)
+                           !t    = 2 * abs (sin ((mdFreq md) * x + temp))
+                       in if (t < 1)
+                            -- TODO: refactor this to have a linear interpolation function
+                            then (t *> mdColor1 md) <+> ((1 - t) *> mdColor2 md)
+                            else let !t' = t - 1
+                                 in (t' *> mdColor0 md) <+> ((1 - t') *> mdColor1 md)

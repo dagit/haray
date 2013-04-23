@@ -35,12 +35,14 @@ data SceneElement = SESphere (Sphere Float)
 data TextureDescription a = Matte (RGB a)
   | Stripe
   | BWNoise
+  | Marble !a
   deriving (Read, Show, Eq, Ord)
 
 mkTexture :: (Ord a, RealFrac a, Floating a) => TextureDescription a -> IO (Texture a)
 mkTexture (Matte rgb) = return (mkMatteTexture (MatteData rgb))
 mkTexture Stripe      = return mkStripeTexture
 mkTexture BWNoise     = mkBWNoiseTexture
+mkTexture (Marble s)  = mkMarbleData s >>= (return . mkMarbleTexture)
 
 data Triangle a = Triangle
   { tP0      :: Vec3 a
