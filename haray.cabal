@@ -28,6 +28,7 @@ Library
                      , lin-alg      == 0.1.*
                      , JuicyPixels  < 4
                      , vector       < 1
+                     , random
   
   Exposed-modules:     Graphics.Rendering.Haray.Bitmap
                      , Graphics.Rendering.Haray.Camera

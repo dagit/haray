@@ -10,6 +10,7 @@ import Numeric.LinearAlgebra.Vector
 import Graphics.Rendering.Haray.RGB
 import Graphics.Rendering.Haray.Texture
 import Graphics.Rendering.Haray.Luminaire
+import Control.Applicative
 
 type Scene = [SceneElement]
 
@@ -33,11 +34,13 @@ data SceneElement = SESphere (Sphere Float)
 
 data TextureDescription a = Matte (RGB a)
   | Stripe
+  | BWNoise
   deriving (Read, Show, Eq, Ord)
 
-mkTexture :: (Ord a, Floating a) => TextureDescription a -> Texture a
-mkTexture (Matte rgb) = mkMatteTexture (MatteData rgb)
-mkTexture Stripe = mkStripeTexture
+mkTexture :: (Ord a, RealFrac a, Floating a) => TextureDescription a -> IO (Texture a)
+mkTexture (Matte rgb) = return (mkMatteTexture (MatteData rgb))
+mkTexture Stripe      = return mkStripeTexture
+mkTexture BWNoise     = mkBWNoiseTexture
 
 data Triangle a = Triangle
   { tP0      :: Vec3 a
@@ -46,12 +49,14 @@ data Triangle a = Triangle
   , tTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkTriangle :: (Ord a, Floating a) => Triangle a -> TriangleData a
-mkTriangle (Triangle p0 p1 p2 tex) = TriangleData
-  { tdP0  = p0
-  , tdP1  = p1
-  , tdP2  = p2
-  , tdTex = mkTexture tex }
+mkTriangle :: (Ord a, RealFrac a, Floating a) => Triangle a -> IO (TriangleData a)
+mkTriangle (Triangle p0 p1 p2 tex) = do
+  tex' <- mkTexture tex
+  return (TriangleData
+    { tdP0  = p0
+    , tdP1  = p1
+    , tdP2  = p2
+    , tdTex = tex' })
 
 data Sphere a = Sphere
   { sCenter  :: Vec3 a
@@ -59,11 +64,13 @@ data Sphere a = Sphere
   , sTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkSphere :: (Ord a, Floating a) => Sphere a -> SphereData a
-mkSphere (Sphere c r tex) = SphereData
-  { sphereCenter = c
-  , sphereRadius = r
-  , sphereTex = mkTexture tex }
+mkSphere :: (Ord a, RealFrac a, Floating a) => Sphere a -> IO (SphereData a)
+mkSphere (Sphere c r tex) = do
+  tex' <- mkTexture tex
+  return (SphereData
+    { sphereCenter = c
+    , sphereRadius = r
+    , sphereTex    = tex' })
 
 data Plane a = Plane
   { pCenter  :: Vec3 a
@@ -71,20 +78,28 @@ data Plane a = Plane
   , pTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkPlane :: (Ord a, Floating a) => Plane a -> PlaneData a
-mkPlane (Plane c n tex) = PlaneData
-  { pdCenter  = c
-  , pdNormal  = n
-  , pdTex     = mkTexture tex }
+mkPlane :: (Ord a, RealFrac a, Floating a) => Plane a -> IO (PlaneData a)
+mkPlane (Plane c n tex) = do
+  tex' <- mkTexture tex
+  return (PlaneData
+    { pdCenter  = c
+    , pdNormal  = n
+    , pdTex     = tex' })
 
-mkShape :: SceneElement -> Maybe (Shape Float)
-mkShape (SESphere sd)   = Just $ Shape.mkSphere (mkSphere sd)
-mkShape (SETriangle td) = Just $ Shape.mkTriangle (mkTriangle td)
-mkShape (SEPlane pd)    = Just $ Shape.mkPlane (mkPlane pd)
-mkShape _               = Nothing
+mkShape :: SceneElement -> IO (Maybe (Shape Float))
+mkShape (SESphere sd)   = do
+  s <- mkSphere sd
+  return $ Just $ Shape.mkSphere s
+mkShape (SETriangle td) = do
+  t <- mkTriangle td
+  return $ Just $ Shape.mkTriangle t
+mkShape (SEPlane pd)    = do
+  p <- mkPlane pd
+  return $ Just $ Shape.mkPlane p
+mkShape _               = return Nothing
 
-mkShapes :: Scene -> [Shape Float]
-mkShapes = catMaybes . map mkShape
+mkShapes :: Scene -> IO [Shape Float]
+mkShapes scene = catMaybes <$> mapM mkShape scene
 
 readScene :: FilePath -> IO Scene
 readScene fp = do
@@ -109,7 +124,7 @@ mkCamera = listToMaybe . catMaybes . map mkCamera'
 readSceneToShapes :: FilePath -> IO [Shape Float]
 readSceneToShapes fp = do
   sc <- readScene fp
-  return (mkShapes sc)
+  mkShapes sc
 
 readSceneToCamera :: FilePath -> IO (Maybe (C.Camera Float, Int, Int))
 readSceneToCamera fp = do

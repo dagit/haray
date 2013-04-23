@@ -32,9 +32,9 @@ renderSceneFromFile from = do
 
 renderScene :: [SceneElement] -> IO (MutableImage RealWorld PixelRGB8)
 renderScene scene = do
+  shapes <- mkShapes scene
   let (camera, nx, ny) = maybe defaultCamera id c'
       c'               = S.mkCamera scene
-      shapes           = mkShapes scene
       directedLights   = mkDirectedLights scene
       ambientLight     = maybe defaultAmbient id (mkAmbientLight scene)
       for              = flip map
