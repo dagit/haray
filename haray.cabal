@@ -29,16 +29,17 @@ Library
                      , JuicyPixels  < 4
                      , vector       < 1
   
-  Exposed-modules:     Graphics.Rendering.Haray.Camera
-                     , Graphics.Rendering.Haray.Ray
-                     , Graphics.Rendering.Haray.Shape
-                     , Graphics.Rendering.Haray.RGB
-                     , Graphics.Rendering.Haray.Bitmap
-                     , Graphics.Rendering.Haray.Scene
-                     , Graphics.Rendering.Haray.Luminaire
-                     , Graphics.Rendering.Haray.Texture
+  Exposed-modules:     Graphics.Rendering.Haray.Bitmap
+                     , Graphics.Rendering.Haray.Camera
                      , Graphics.Rendering.Haray.HitRecord
+                     , Graphics.Rendering.Haray.Luminaire
+                     , Graphics.Rendering.Haray.Ray
                      , Graphics.Rendering.Haray.Render
+                     , Graphics.Rendering.Haray.RGB
+                     , Graphics.Rendering.Haray.Scene
+                     , Graphics.Rendering.Haray.Shape
+                     , Graphics.Rendering.Haray.SolidNoise
+                     , Graphics.Rendering.Haray.Texture
   if impl(ghc >= 7.0.1)
     ghc-prof-options: -rtsopts
   ghc-prof-options: -prof -auto-all
