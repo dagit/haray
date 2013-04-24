@@ -55,7 +55,7 @@ renderScene scene = do
           hit = listToMaybe $ sortBy comp $ catMaybes $
             for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
           progress = i+j*nx
-          tenpercent = fromIntegral nx * fromIntegral ny * (0.1::Double)
+          tenpercent = fromIntegral nx * fromIntegral ny * (0.1::RealTy)
       when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
       hFlush stdout
       case hit of
@@ -87,5 +87,5 @@ renderScene scene = do
                                              (toWord8 (clamp (getG c)))
                                              (toWord8 (clamp (getB c))))
         Nothing ->
-          writePixelRGBIO img i j (PixelRGB8 (toWord8 (0.2::Double)) (toWord8 (0.2::Double)) (toWord8 (0.2::Double)))
+          writePixelRGBIO img i j (PixelRGB8 (toWord8 (0.2::RealTy)) (toWord8 (0.2::RealTy)) (toWord8 (0.2::RealTy)))
   return img 

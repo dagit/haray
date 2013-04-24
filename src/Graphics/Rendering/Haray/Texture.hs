@@ -4,6 +4,7 @@ module Graphics.Rendering.Haray.Texture where
 import Numeric.LinearAlgebra.Vector
 import Graphics.Rendering.Haray.RGB
 import Graphics.Rendering.Haray.SolidNoise
+import Data.Vector.Unboxed
 
 type Texture a = Vec2 a -> Vec3 a -> RGB a
 
@@ -27,12 +28,14 @@ data NoiseData a = NoiseData
   , ndSolidNoise :: !(SolidNoise a)
   } deriving (Read, Show, Eq, Ord)
 
-mkNoiseTexture :: (RealFrac a, Floating a) => NoiseData a -> Texture a
+mkNoiseTexture :: (Unbox a, RealFloat a, RealFrac a, Floating a) => NoiseData a -> Texture a
 mkNoiseTexture (NoiseData scale c0 c1 sn) =
   \_ p -> let !t = (1 + (noise sn (scale *> p))) / 2
           in (t*>c0) <+> ((1 - t)*>c1)
+{-# SPECIALIZE mkNoiseTexture :: NoiseData Double -> Texture Double #-}
+{-# SPECIALIZE mkNoiseTexture :: NoiseData Float  -> Texture Float  #-}
 
-mkBWNoiseTexture :: (RealFrac a, Floating a) => IO (Texture a)
+mkBWNoiseTexture :: (Unbox a, RealFloat a, RealFrac a, Floating a) => IO (Texture a)
 mkBWNoiseTexture = do
   sn <- mkSolidNoise
   return (mkNoiseTexture
@@ -41,6 +44,8 @@ mkBWNoiseTexture = do
              , ndColor0     = Vec3 1.0 1.0 1.0
              , ndColor1     = Vec3 0.0 0.0 0.0
              , ndSolidNoise = sn }))
+{-# SPECIALIZE mkBWNoiseTexture :: IO (Texture Double) #-}
+{-# SPECIALIZE mkBWNoiseTexture :: IO (Texture Float)  #-}
 
 data MarbleData a = MarbleData
   { mdFreq       :: !a
@@ -52,7 +57,7 @@ data MarbleData a = MarbleData
   , mdSolidNoise :: !(SolidNoise a)
   } deriving (Read, Show, Eq, Ord)
 
-mkMarbleData :: Floating a => a -> IO (MarbleData a)
+mkMarbleData :: (RealFloat a, Unbox a, Floating a) => a -> IO (MarbleData a)
 mkMarbleData stripes_per_unit = do
   sn <- mkSolidNoise
   return (MarbleData
@@ -63,8 +68,10 @@ mkMarbleData stripes_per_unit = do
            , mdColor1     = Vec3 0.4  0.2  0.1
            , mdColor2     = Vec3 0.06 0.04 0.02
            , mdSolidNoise = sn })
+{-# SPECIALIZE INLINE mkMarbleData :: Double -> IO (MarbleData Double) #-}
+{-# SPECIALIZE INLINE mkMarbleData :: Float  -> IO (MarbleData Float)  #-}
 
-mkMarbleTexture :: (Floating a, RealFrac a) => MarbleData a -> Texture a
+mkMarbleTexture :: (RealFloat a, Unbox a, Floating a, RealFrac a) => MarbleData a -> Texture a
 mkMarbleTexture md =
   \_ p@(Vec3 x _ _) -> let !temp = mdScale md * turbulence (mdSolidNoise md) ((mdFreq md) *> p) (mdOctaves md)
                            !t    = 2 * abs (sin ((mdFreq md) * x + temp))
@@ -73,3 +80,5 @@ mkMarbleTexture md =
                             then (t *> mdColor1 md) <+> ((1 - t) *> mdColor2 md)
                             else let !t' = t - 1
                                  in (t' *> mdColor0 md) <+> ((1 - t') *> mdColor1 md)
+{-# SPECIALIZE mkMarbleTexture :: MarbleData Double -> Texture Double #-}
+{-# SPECIALIZE mkMarbleTexture :: MarbleData Float  -> Texture Float  #-}

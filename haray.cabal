@@ -15,7 +15,11 @@ Executable haray
                , base > 3 && < 5
   if impl(ghc >= 7.0.1)
     ghc-prof-options: -rtsopts
-  ghc-prof-options: -prof -auto-all
+  if impl(ghc >= 7.4.1)
+    ghc-prof-options: -fprof-auto
+  else
+    ghc-prof-options: -auto-all
+  ghc-prof-options: -prof
   ghc-options: -O2 -funbox-strict-fields -Wall
 
 Library
@@ -25,7 +29,7 @@ Library
   -- Packages needed in order to build this package.
   Build-depends:       base         > 3 && < 5
                      , strict       == 0.3.*
-                     , lin-alg      == 0.1.*
+                     , lin-alg      >= 0.1.0.2
                      , JuicyPixels  < 4
                      , vector       < 1
                      , random
@@ -43,7 +47,11 @@ Library
                      , Graphics.Rendering.Haray.Texture
   if impl(ghc >= 7.0.1)
     ghc-prof-options: -rtsopts
-  ghc-prof-options: -prof -auto-all
+  if impl(ghc >= 7.4.1)
+    ghc-prof-options: -fprof-auto
+  else
+    ghc-prof-options: -auto-all
+  ghc-prof-options: -prof
   ghc-options: -O2 -funbox-strict-fields -Wall
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
