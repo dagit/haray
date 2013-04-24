@@ -10,6 +10,7 @@ import Numeric.LinearAlgebra.Vector
 import Graphics.Rendering.Haray.RGB
 import Graphics.Rendering.Haray.Texture
 import Graphics.Rendering.Haray.Luminaire
+import Graphics.Rendering.Haray.HMDInfo
 import Control.Applicative
 import Data.Vector.Unboxed (Unbox)
 
@@ -21,6 +22,7 @@ type RealTy = Float
 data SceneElement = SESphere (Sphere RealTy)
                   | SETriangle (Triangle RealTy)
                   | SEPlane (Plane RealTy)
+                  -- | TODO: fix me: never create ADT with record selectors. Partial functions suck.
                   | SECamera { camEye       :: Vec3 RealTy
                              , camGaze      :: Vec3 RealTy
                              , camUp        :: Vec3 RealTy
@@ -32,6 +34,8 @@ data SceneElement = SESphere (Sphere RealTy)
                              , camNX        :: Int
                              , camNY        :: Int
                              , camApeture   :: RealTy }
+                  -- | TODO: fix me: never create ADT with record selectors. Partial functions suck.
+                  | SEHMDInfo (HMDInfo RealTy)
                   | SEDirectedLight (DirectedLight RealTy)
                   | SEAmbientLight (AmbientLight RealTy)
   deriving (Read, Show, Eq, Ord)
@@ -134,6 +138,13 @@ mkCamera = listToMaybe . catMaybes . map mkCamera'
                                               (camV1 c)
                                               (camDist c), camNX c, camNY c)
   mkCamera' _            = Nothing
+
+mkHMDInfo :: Scene -> Maybe (HMDInfo RealTy)
+mkHMDInfo = listToMaybe . catMaybes . map mkHMDInfo'
+  where
+  mkHMDInfo' :: SceneElement -> Maybe (HMDInfo RealTy)
+  mkHMDInfo' (SEHMDInfo hmdi) = Just hmdi
+  mkHMDInfo' _                = Nothing
 
 readSceneToShapes :: FilePath -> IO [Shape RealTy]
 readSceneToShapes fp = do

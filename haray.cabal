@@ -37,6 +37,7 @@ Library
   Exposed-modules:     Graphics.Rendering.Haray.Bitmap
                      , Graphics.Rendering.Haray.Camera
                      , Graphics.Rendering.Haray.HitRecord
+                     , Graphics.Rendering.Haray.HMDInfo
                      , Graphics.Rendering.Haray.Luminaire
                      , Graphics.Rendering.Haray.Ray
                      , Graphics.Rendering.Haray.Render
