@@ -14,18 +14,18 @@ import Graphics.Rendering.Haray.Luminaire
 import Graphics.Rendering.Haray.Bitmap
 import Numeric.LinearAlgebra.Vector
 import Control.Monad ( forM_, forM, when )
-import Control.Monad.ST ( stToIO, ST, RealWorld )
-import System.IO ( hFlush, stdout )
+import Control.Monad.ST
 import System.Random.MWC
-import Codec.Picture.Types ( MutableImage(..), PixelRGB8(..) )
+import Codec.Picture.Types ( Image(..), freezeImage, PixelRGB8(..) )
+import Codec.Picture ( writePng )
 
 renderSceneFromTo :: FilePath -> FilePath -> IO ()
 renderSceneFromTo from to = do
   img <- renderSceneFromFile from 
   putStrLn $ "Writing to: " ++ to
-  writePngRGB8 to img
+  writePng to img
 
-renderSceneFromFile :: FilePath -> IO (MutableImage RealWorld PixelRGB8)
+renderSceneFromFile :: FilePath -> IO (Image PixelRGB8)
 renderSceneFromFile from = do
   putStrLn $ "Reading scene: " ++ from
   scene <- readScene from
@@ -35,7 +35,7 @@ renderSceneFromFile from = do
 for :: [a] -> (a -> b) -> [b]
 for = flip map
 
-renderScene :: GenST s -> [SceneElement] -> ST s (MutableImage s PixelRGB8)
+renderScene :: GenST s -> [SceneElement] -> ST s (Image PixelRGB8)
 renderScene gen scene = do
   shapes <- mkShapes gen scene
   let (camera, nx, ny) = maybe defaultCamera id c'
@@ -74,10 +74,6 @@ renderScene gen scene = do
                 hit = listToMaybe $ sortBy comp $ catMaybes $
                   for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
             return (r,hit)
-          let progress = i+j*nx
-              tenpercent = fromIntegral nx * fromIntegral ny * (0.1::RealTy)
-          -- when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
-          -- hFlush stdout
           let cs   = map (processHit shapes directedLights ambientLight) hs
               avgC = foldl1' (<+>) cs </ genericLength cs
           -- it's the left eye so write to the pixel coordinates of the final image
@@ -100,17 +96,14 @@ renderScene gen scene = do
                 hit = listToMaybe $ sortBy comp $ catMaybes $
                   for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
             return (r,hit)
-          let progress = i+j*nx
-              tenpercent = fromIntegral nx * fromIntegral ny * (0.1::RealTy)
-          -- when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
-          -- hFlush stdout
           let cs   = map (processHit shapes directedLights ambientLight) hs
               avgC = foldl1' (<+>) cs </ genericLength cs
           -- shift the pixel location of the final image by nx
           when (nx <= x && x < 2*nx) $ writePixelRGB img x j (PixelRGB8 (toWord8 (clamp (getR avgC)))
                                                                         (toWord8 (clamp (getG avgC)))
                                                                         (toWord8 (clamp (getB avgC))))
-      return img 
+      img' <- freezeImage img
+      return img'
     Nothing  -> do
       img <- mkImage nx ny
       forM_ [0 .. (ny-1)] $ \j ->
@@ -125,16 +118,13 @@ renderScene gen scene = do
                 hit = listToMaybe $ sortBy comp $ catMaybes $
                   for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
             return (r,hit)
-          let progress = i+j*nx
-              tenpercent = fromIntegral nx * fromIntegral ny * (0.1::RealTy)
-          -- when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
-          -- hFlush stdout
           let cs   = map (processHit shapes directedLights ambientLight) hs
               avgC = foldl1' (<+>) cs </ genericLength cs
           writePixelRGB img i j (PixelRGB8 (toWord8 (clamp (getR avgC)))
                                            (toWord8 (clamp (getG avgC)))
                                            (toWord8 (clamp (getB avgC))))
-      return img 
+      img' <- freezeImage img
+      return img'
 
 processHit :: [Shape RealTy] -> [DirectedLight RealTy] -> AmbientLight RealTy
            -> (Ray RealTy, Maybe (HitRecord RealTy)) -> RGB RealTy
