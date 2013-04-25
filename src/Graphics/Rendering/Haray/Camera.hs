@@ -46,3 +46,5 @@ getRay cam a b =
   let origin = camCenter cam
       target = camCorner cam <+> (a*>(camAcross cam)) <+> (b*>(camUp cam))
   in Ray origin (unitVector (target <-> origin))
+{-# SPECIALIZE INLINE getRay :: Camera Double -> Double -> Double -> Ray Double #-}
+{-# SPECIALIZE INLINE getRay :: Camera Float  -> Float  -> Float  -> Ray Float  #-}

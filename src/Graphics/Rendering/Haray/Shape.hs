@@ -9,6 +9,11 @@ data Shape a = Shape
   { shapeHit       :: Ray a -> a -> a -> a -> Maybe (HitRecord a)
   , shapeShadowHit :: Ray a -> a -> a -> a -> Bool
   }
+-- TODO: what is the correct way to specialize these sorts of functions? Here or at the definitions below?
+{-# SPECIALIZE INLINE shapeHit :: Ray Double -> Double -> Double -> Double -> Maybe (HitRecord Double) #-}
+{-# SPECIALIZE INLINE shapeHit :: Ray Float  -> Float  -> Float  -> Float  -> Maybe (HitRecord Float) #-}
+{-# SPECIALIZE INLINE shapeShadowHit :: Ray Double -> Double -> Double -> Double -> Bool #-}
+{-# SPECIALIZE INLINE shapeShadowHit :: Ray Float  -> Float  -> Float  -> Float  -> Bool #-}
 
 data TriangleData a = TriangleData
   { tdP0  :: !(Vec3 a)
@@ -100,36 +105,38 @@ data SphereData a = SphereData
   , sphereTex    :: Texture a
   }
 
-{-# INLINE mkSphere #-}
-mkSphere :: (Ord a, Floating a) => SphereData a -> Shape a
-mkSphere sd = Shape
-  { shapeHit = \r tmin tmax _time -> {-# SCC "sphereShapeHit" #-}
-    let temp = rayOrigin r <-> sphereCenter sd
-        a = rayDirection r <.> rayDirection r
-        b = 2*(rayDirection r <.> temp)
-        c = (temp <.> temp) - (sphereRadius sd * sphereRadius sd)
-        discriminant' = b*b - 4*a*c
+sphereHit :: (Ord a, Floating a) => SphereData a -> Ray a -> a -> a -> a -> Maybe (HitRecord a)
+sphereHit sd r tmin tmax _time = {-# SCC "sphereShapeHit" #-}
+  let temp = rayOrigin r <-> sphereCenter sd
+      a = rayDirection r <.> rayDirection r
+      b = 2*(rayDirection r <.> temp)
+      c = (temp <.> temp) - (sphereRadius sd * sphereRadius sd)
+      discriminant' = b*b - 4*a*c
+  in
+  if discriminant' > 0
+    then let discriminant = sqrt discriminant'
+             t = ((-b) - discriminant)/(2*a)
+             t'= ((-b) + discriminant)/(2*a)
+             getHit at = Just (HitRecord
+               {hrT = at
+               ,hrNormal = unitVector (rayOrigin r <+> (at *> rayDirection r)
+                                      <-> sphereCenter sd)
+               ,hrHitTex = sphereTex sd
+               ,hrHitP   = rayOrigin r <+> (at *> rayDirection r)
+               ,hrUV     = Vec2 0 0 -- TODO: implement me
+               })
     in
-    if discriminant' > 0
-      then let discriminant = sqrt discriminant'
-               t = ((-b) - discriminant)/(2*a)
-               t'= ((-b) + discriminant)/(2*a)
-               getHit at = Just (HitRecord
-                 {hrT = at
-                 ,hrNormal = unitVector (rayOrigin r <+> (at *> rayDirection r)
-                                        <-> sphereCenter sd)
-                 ,hrHitTex = sphereTex sd
-                 ,hrHitP   = rayOrigin r <+> (at *> rayDirection r)
-                 ,hrUV     = Vec2 0 0 -- TODO: implement me
-                 })
-      in
-      if t < tmin
-        then if t' < tmin || t' > tmax
-               then Nothing
-               else getHit t'
-        else getHit t
-      else Nothing
-  , shapeShadowHit = \r tmin tmax _time ->
+    if t < tmin
+      then if t' < tmin || t' > tmax
+             then Nothing
+             else getHit t'
+      else getHit t
+    else Nothing
+{-# SPECIALIZE INLINE sphereHit :: SphereData Double -> Ray Double -> Double -> Double -> Double -> Maybe (HitRecord Double) #-}
+{-# SPECIALIZE INLINE sphereHit :: SphereData Float  -> Ray Float  -> Float  -> Float  -> Float  -> Maybe (HitRecord Float)  #-}
+
+sphereShadowHit :: (Ord a, Floating a) => SphereData a -> Ray a -> a -> a -> a -> Bool
+sphereShadowHit sd r tmin tmax _time =
     let temp = rayOrigin r <-> sphereCenter sd
         a = rayDirection r <.> rayDirection r
         b = 2*(rayDirection r <.> temp)
@@ -147,6 +154,13 @@ mkSphere sd = Shape
                else True
         else True
       else False
+{-# SPECIALIZE INLINE sphereShadowHit :: SphereData Double -> Ray Double -> Double -> Double -> Double -> Bool #-}
+{-# SPECIALIZE INLINE sphereShadowHit :: SphereData Float  -> Ray Float  -> Float  -> Float  -> Float  -> Bool #-}
+
+mkSphere :: (Ord a, Floating a) => SphereData a -> Shape a
+mkSphere sd = Shape
+  { shapeHit       = sphereHit sd
+  , shapeShadowHit = sphereShadowHit sd
   }
 
 data PlaneData a = PlaneData
