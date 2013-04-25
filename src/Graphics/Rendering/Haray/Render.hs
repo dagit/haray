@@ -14,9 +14,9 @@ import Graphics.Rendering.Haray.Luminaire
 import Graphics.Rendering.Haray.Bitmap
 import Numeric.LinearAlgebra.Vector
 import Control.Monad ( forM_, forM, when )
-import Control.Monad.ST ( stToIO, RealWorld )
+import Control.Monad.ST ( stToIO, ST, RealWorld )
 import System.IO ( hFlush, stdout )
-import System.Random
+import System.Random.MWC
 import Codec.Picture.Types ( MutableImage(..), PixelRGB8(..) )
 
 renderSceneFromTo :: FilePath -> FilePath -> IO ()
@@ -30,14 +30,14 @@ renderSceneFromFile from = do
   putStrLn $ "Reading scene: " ++ from
   scene <- readScene from
   putStr $ "Rendering:"
-  renderScene scene
+  withSystemRandom (\gen -> renderScene gen scene)
 
 for :: [a] -> (a -> b) -> [b]
 for = flip map
 
-renderScene :: [SceneElement] -> IO (MutableImage RealWorld PixelRGB8)
-renderScene scene = do
-  shapes <- mkShapes scene
+renderScene :: GenST s -> [SceneElement] -> ST s (MutableImage s PixelRGB8)
+renderScene gen scene = do
+  shapes <- mkShapes gen scene
   let (camera, nx, ny) = maybe defaultCamera id c'
       c'               = S.mkCamera scene
       hmdi             = mkHMDInfo scene
@@ -58,15 +58,15 @@ renderScene scene = do
           hmeters = abs (hmdHScreenSize hmd / 4 - hmdInterpupillaryDistance hmd / 2)
           h       = 4 * hmeters / hmdHScreenSize hmd
           xshift  = round (h * fromIntegral nx)
-      img <- stToIO $ mkImage (nx*2) ny
+      img <- mkImage (nx*2) ny
       -- Left eye camera
       forM_ [0 .. (ny-1)] $ \j ->
         forM_ [0 .. (nx-1)] $ \i -> do
           let x = i + xshift
           hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
             -- TODO: This really isn't a very good distribution        
-            ry <- randomRIO (-0.5,0.5)
-            rx <- randomRIO (-0.5,0.5)
+            ry <- uniformR (-0.5,0.5) gen
+            rx <- uniformR (-0.5,0.5) gen
             let tmax = 100000
                 leftCam = camera { camCenter = camCenter camera <+> (Vec3 (hmdInterpupillaryDistance hmd / 2) 0 0)}
                 r   = getRay leftCam (((fromIntegral i)+rx+0.5)/fromIntegral nx)
@@ -76,23 +76,23 @@ renderScene scene = do
             return (r,hit)
           let progress = i+j*nx
               tenpercent = fromIntegral nx * fromIntegral ny * (0.1::RealTy)
-          when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
-          hFlush stdout
+          -- when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
+          -- hFlush stdout
           let cs   = map (processHit shapes directedLights ambientLight) hs
               avgC = foldl1' (<+>) cs </ genericLength cs
           -- it's the left eye so write to the pixel coordinates of the final image
           -- without shifting
-          when (0 <= x && x < nx) $ writePixelRGBIO img x j (PixelRGB8 (toWord8 (clamp (getR avgC)))
-                                                                       (toWord8 (clamp (getG avgC)))
-                                                                       (toWord8 (clamp (getB avgC))))
+          when (0 <= x && x < nx) $ writePixelRGB img x j (PixelRGB8 (toWord8 (clamp (getR avgC)))
+                                                                     (toWord8 (clamp (getG avgC)))
+                                                                     (toWord8 (clamp (getB avgC))))
       -- Right eye camera
       forM_ [0 .. (ny-1)] $ \j ->
         forM_ [0 .. (nx-1)] $ \i -> do
           let x = i + nx - xshift
           hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
             -- TODO: This really isn't a very good distribution        
-            ry <- randomRIO (-0.5,0.5)
-            rx <- randomRIO (-0.5,0.5)
+            ry <- uniformR (-0.5,0.5) gen
+            rx <- uniformR (-0.5,0.5) gen
             let tmax = 100000
                 rightCam = camera { camCenter = camCenter camera <-> (Vec3 (hmdInterpupillaryDistance hmd / 2) 0 0)}
                 r   = getRay rightCam (((fromIntegral i)+rx+0.5)/fromIntegral nx)
@@ -102,23 +102,23 @@ renderScene scene = do
             return (r,hit)
           let progress = i+j*nx
               tenpercent = fromIntegral nx * fromIntegral ny * (0.1::RealTy)
-          when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
-          hFlush stdout
+          -- when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
+          -- hFlush stdout
           let cs   = map (processHit shapes directedLights ambientLight) hs
               avgC = foldl1' (<+>) cs </ genericLength cs
           -- shift the pixel location of the final image by nx
-          when (nx <= x && x < 2*nx) $ writePixelRGBIO img x j (PixelRGB8 (toWord8 (clamp (getR avgC)))
-                                                                          (toWord8 (clamp (getG avgC)))
-                                                                          (toWord8 (clamp (getB avgC))))
+          when (nx <= x && x < 2*nx) $ writePixelRGB img x j (PixelRGB8 (toWord8 (clamp (getR avgC)))
+                                                                        (toWord8 (clamp (getG avgC)))
+                                                                        (toWord8 (clamp (getB avgC))))
       return img 
     Nothing  -> do
-      img <- stToIO $ mkImage nx ny
+      img <- mkImage nx ny
       forM_ [0 .. (ny-1)] $ \j ->
         forM_ [0 .. (nx-1)] $ \i -> do
           hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
             -- TODO: This really isn't a very good distribution        
-            ry <- randomRIO (-0.5,0.5)
-            rx <- randomRIO (-0.5,0.5)
+            ry <- uniformR (-0.5,0.5) gen
+            rx <- uniformR (-0.5,0.5) gen
             let tmax = 100000
                 r = getRay camera (((fromIntegral i)+rx+0.5)/fromIntegral nx)
                                   (((fromIntegral j)+ry+0.5)/fromIntegral ny)
@@ -127,13 +127,13 @@ renderScene scene = do
             return (r,hit)
           let progress = i+j*nx
               tenpercent = fromIntegral nx * fromIntegral ny * (0.1::RealTy)
-          when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
-          hFlush stdout
+          -- when ((progress `mod` (round tenpercent)) == 0) (putStr ".")
+          -- hFlush stdout
           let cs   = map (processHit shapes directedLights ambientLight) hs
               avgC = foldl1' (<+>) cs </ genericLength cs
-          writePixelRGBIO img i j (PixelRGB8 (toWord8 (clamp (getR avgC)))
-                                             (toWord8 (clamp (getG avgC)))
-                                             (toWord8 (clamp (getB avgC))))
+          writePixelRGB img i j (PixelRGB8 (toWord8 (clamp (getR avgC)))
+                                           (toWord8 (clamp (getG avgC)))
+                                           (toWord8 (clamp (getB avgC))))
       return img 
 
 processHit :: [Shape RealTy] -> [DirectedLight RealTy] -> AmbientLight RealTy

@@ -19,6 +19,11 @@ writePixelRGBIO bmp x y p = stToIO (writePixel bmp x (h - y - 1) p)
   where
   h = mutableImageHeight bmp
 
+writePixelRGB :: MutableImage s PixelRGB8 -> Int -> Int -> PixelRGB8 -> ST s ()
+writePixelRGB bmp x y p = writePixel bmp x (h - y - 1) p
+  where
+  h = mutableImageHeight bmp
+
 writePngRGB8 :: FilePath -> MutableImage RealWorld PixelRGB8 -> IO ()
 writePngRGB8 outfile bmp = do
   imageD <- freeze (mutableImageData bmp)

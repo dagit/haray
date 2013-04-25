@@ -14,6 +14,9 @@ import Graphics.Rendering.Haray.HMDInfo
 import Control.Applicative
 import Data.Vector.Unboxed (Unbox)
 
+import Control.Monad.ST
+import System.Random.MWC
+
 type Scene = [SceneElement]
 
 type RealTy = Float
@@ -46,13 +49,13 @@ data TextureDescription a = Matte (RGB a)
   | Marble !a
   deriving (Read, Show, Eq, Ord)
 
-mkTexture :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => TextureDescription a -> IO (Texture a)
-mkTexture (Matte rgb) = return (mkMatteTexture (MatteData rgb))
-mkTexture Stripe      = return mkStripeTexture
-mkTexture BWNoise     = mkBWNoiseTexture
-mkTexture (Marble s)  = mkMarbleData s >>= (return . mkMarbleTexture)
-{-# SPECIALIZE mkTexture :: TextureDescription Double -> IO (Texture Double) #-}
-{-# SPECIALIZE mkTexture :: TextureDescription Float  -> IO (Texture Float)  #-}
+mkTexture :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => GenST s -> TextureDescription a -> ST s (Texture a)
+mkTexture _   (Matte rgb) = return (mkMatteTexture (MatteData rgb))
+mkTexture _   Stripe      = return mkStripeTexture
+mkTexture gen BWNoise     = mkBWNoiseTexture gen
+mkTexture gen (Marble s)  = mkMarbleData gen s >>= (return . mkMarbleTexture)
+{-# SPECIALIZE mkTexture :: GenST s -> TextureDescription Double -> ST s (Texture Double) #-}
+{-# SPECIALIZE mkTexture :: GenST s -> TextureDescription Float  -> ST s (Texture Float)  #-}
 
 data Triangle a = Triangle
   { tP0      :: Vec3 a
@@ -61,16 +64,16 @@ data Triangle a = Triangle
   , tTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkTriangle :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => Triangle a -> IO (TriangleData a)
-mkTriangle (Triangle p0 p1 p2 tex) = do
-  tex' <- mkTexture tex
+mkTriangle :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => GenST s -> Triangle a -> ST s (TriangleData a)
+mkTriangle gen (Triangle p0 p1 p2 tex) = do
+  tex' <- mkTexture gen tex
   return (TriangleData
     { tdP0  = p0
     , tdP1  = p1
     , tdP2  = p2
     , tdTex = tex' })
-{-# SPECIALIZE mkTriangle :: Triangle Double -> IO (TriangleData Double) #-}
-{-# SPECIALIZE mkTriangle :: Triangle Float  -> IO (TriangleData Float)  #-}
+{-# SPECIALIZE mkTriangle :: GenST s -> Triangle Double -> ST s (TriangleData Double) #-}
+{-# SPECIALIZE mkTriangle :: GenST s -> Triangle Float  -> ST s (TriangleData Float)  #-}
 
 data Sphere a = Sphere
   { sCenter  :: Vec3 a
@@ -78,15 +81,15 @@ data Sphere a = Sphere
   , sTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkSphere :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => Sphere a -> IO (SphereData a)
-mkSphere (Sphere c r tex) = do
-  tex' <- mkTexture tex
+mkSphere :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => GenST s -> Sphere a -> ST s (SphereData a)
+mkSphere gen (Sphere c r tex) = do
+  tex' <- mkTexture gen tex
   return (SphereData
     { sphereCenter = c
     , sphereRadius = r
     , sphereTex    = tex' })
-{-# SPECIALIZE mkSphere :: Sphere Double -> IO (SphereData Double) #-}
-{-# SPECIALIZE mkSphere :: Sphere Float  -> IO (SphereData Float)  #-}
+{-# SPECIALIZE mkSphere :: GenST s -> Sphere Double -> ST s (SphereData Double) #-}
+{-# SPECIALIZE mkSphere :: GenST s -> Sphere Float  -> ST s (SphereData Float)  #-}
 
 data Plane a = Plane
   { pCenter  :: Vec3 a
@@ -94,30 +97,30 @@ data Plane a = Plane
   , pTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkPlane :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => Plane a -> IO (PlaneData a)
-mkPlane (Plane c n tex) = do
-  tex' <- mkTexture tex
+mkPlane :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => GenST s -> Plane a -> ST s (PlaneData a)
+mkPlane gen (Plane c n tex) = do
+  tex' <- mkTexture gen tex
   return (PlaneData
     { pdCenter  = c
     , pdNormal  = n
     , pdTex     = tex' })
-{-# SPECIALIZE mkPlane :: Plane Double -> IO (PlaneData Double) #-}
-{-# SPECIALIZE mkPlane :: Plane Float  -> IO (PlaneData Float)  #-}
+{-# SPECIALIZE mkPlane :: GenST s -> Plane Double -> ST s (PlaneData Double) #-}
+{-# SPECIALIZE mkPlane :: GenST s -> Plane Float  -> ST s (PlaneData Float)  #-}
 
-mkShape :: SceneElement -> IO (Maybe (Shape RealTy))
-mkShape (SESphere sd)   = do
-  s <- mkSphere sd
+mkShape :: GenST s -> SceneElement -> ST s (Maybe (Shape RealTy))
+mkShape gen (SESphere sd)   = do
+  s <- mkSphere gen sd
   return $ Just $ Shape.mkSphere s
-mkShape (SETriangle td) = do
-  t <- mkTriangle td
+mkShape gen (SETriangle td) = do
+  t <- mkTriangle gen td
   return $ Just $ Shape.mkTriangle t
-mkShape (SEPlane pd)    = do
-  p <- mkPlane pd
+mkShape gen (SEPlane pd)    = do
+  p <- mkPlane gen pd
   return $ Just $ Shape.mkPlane p
-mkShape _               = return Nothing
+mkShape _   _               = return Nothing
 
-mkShapes :: Scene -> IO [Shape RealTy]
-mkShapes scene = catMaybes <$> mapM mkShape scene
+mkShapes :: GenST s -> Scene -> ST s [Shape RealTy]
+mkShapes gen scene = catMaybes <$> mapM (mkShape gen) scene
 
 readScene :: FilePath -> IO Scene
 readScene fp = do
@@ -137,7 +140,7 @@ mkCamera = listToMaybe . catMaybes . map mkCamera'
                                               (camV0 c)
                                               (camV1 c)
                                               (camDist c), camNX c, camNY c)
-  mkCamera' _            = Nothing
+  mkCamera' _              = Nothing
 
 mkHMDInfo :: Scene -> Maybe (HMDInfo RealTy)
 mkHMDInfo = listToMaybe . catMaybes . map mkHMDInfo'
@@ -146,10 +149,10 @@ mkHMDInfo = listToMaybe . catMaybes . map mkHMDInfo'
   mkHMDInfo' (SEHMDInfo hmdi) = Just hmdi
   mkHMDInfo' _                = Nothing
 
-readSceneToShapes :: FilePath -> IO [Shape RealTy]
-readSceneToShapes fp = do
+readSceneToShapes :: GenST RealWorld -> FilePath -> IO [Shape RealTy]
+readSceneToShapes gen fp = do
   sc <- readScene fp
-  mkShapes sc
+  stToIO (mkShapes gen sc)
 
 readSceneToCamera :: FilePath -> IO (Maybe (C.Camera RealTy, Int, Int))
 readSceneToCamera fp = do

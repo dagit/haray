@@ -17,7 +17,8 @@ import qualified Data.Vector.Unboxed as V
 import Data.Vector.Unboxed ( Unbox )
 import Data.List ( foldl1' )
 
-import System.Random -- There are better ways...
+import Control.Monad.ST
+import System.Random.MWC
 
 data SolidNoise a = SolidNoise
   { snGradient :: !(V.Vector (Vec3 a)) -- TODO: smart constructor alert: this is meant to have length 16
@@ -62,8 +63,8 @@ knot sn !i !j !k v@(Vec3 x y z) = omega x * omega y * omega z * (gamma sn i j k 
 {-# SPECIALIZE INLINE knot :: SolidNoise Double -> Int -> Int -> Int -> Vec3 Double -> Double #-}
 {-# SPECIALIZE INLINE knot :: SolidNoise Float  -> Int -> Int -> Int -> Vec3 Float  -> Float #-}
 
-mkSolidNoise :: (Unbox a, RealFloat a, Num a) => IO (SolidNoise a)
-mkSolidNoise = do
+mkSolidNoise :: (Unbox a, RealFloat a, Num a) => GenST s -> ST s (SolidNoise a)
+mkSolidNoise gen = do
   let v = V.fromList [Vec3 1 1 0, Vec3 (-1)    1 0, Vec3 1 (-1)    0, Vec3 (-1) (-1)    0
                      ,Vec3 1 0 1, Vec3 (-1)    0 1, Vec3 1    0 (-1), Vec3 (-1)    0 (-1)
                      ,Vec3 0 1 1, Vec3    0 (-1) 1, Vec3 0    1 (-1), Vec3 0    (-1) (-1)
@@ -74,22 +75,22 @@ mkSolidNoise = do
   where
   -- This is slightly inefficient in terms of list operations, but our lists are only
   -- length 16 so it seems like overkill to use other data structures.
-  fetch :: [a] -> IO (a,[a])
+  -- fetch :: [a] -> ST s (a,[a])
   fetch []  = error "Graphics.Rendering.Haray.SolidNoise.fetch: called on []"
   fetch [x] = return (x,[])
   fetch xs  = do
-    i <- randomRIO (1, length xs)
+    i <- uniformR (1, length xs) gen
     let (h,tl) = splitAt i xs
     return (last h, init h ++ tl)
   
-  shuffle :: [a] -> IO [a]
+  -- shuffle :: [a] -> ST s [a]
   shuffle [] = return []
   shuffle xs = do
     (x,xs') <- fetch xs
     ys      <- shuffle xs'
     return $! x : ys
-{-# SPECIALIZE mkSolidNoise :: IO (SolidNoise Double) #-}
-{-# SPECIALIZE mkSolidNoise :: IO (SolidNoise Float)  #-}
+{-# SPECIALIZE mkSolidNoise :: GenST s -> ST s (SolidNoise Double) #-}
+{-# SPECIALIZE mkSolidNoise :: GenST s -> ST s (SolidNoise Float)  #-}
 
 turbulence :: (RealFloat a, Unbox a, RealFrac a, Floating a) => SolidNoise a -> Vec3 a -> Int -> a
 turbulence _  _ depth | depth < 1 = error "Graphics.Rendering.Haray.SolidNoise.turbulence: depth must be > 0"

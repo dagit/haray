@@ -6,6 +6,9 @@ import Graphics.Rendering.Haray.RGB
 import Graphics.Rendering.Haray.SolidNoise
 import Data.Vector.Unboxed
 
+import Control.Monad.ST
+import System.Random.MWC
+
 type Texture a = Vec2 a -> Vec3 a -> RGB a
 
 data MatteData a = MatteData
@@ -35,17 +38,17 @@ mkNoiseTexture (NoiseData scale c0 c1 sn) =
 {-# SPECIALIZE mkNoiseTexture :: NoiseData Double -> Texture Double #-}
 {-# SPECIALIZE mkNoiseTexture :: NoiseData Float  -> Texture Float  #-}
 
-mkBWNoiseTexture :: (Unbox a, RealFloat a, RealFrac a, Floating a) => IO (Texture a)
-mkBWNoiseTexture = do
-  sn <- mkSolidNoise
+mkBWNoiseTexture :: (Unbox a, RealFloat a, RealFrac a, Floating a) => GenST s -> ST s (Texture a)
+mkBWNoiseTexture gen = do
+  sn <- mkSolidNoise gen
   return (mkNoiseTexture
            (NoiseData
              { ndScale      = 0.05
              , ndColor0     = Vec3 1.0 1.0 1.0
              , ndColor1     = Vec3 0.0 0.0 0.0
              , ndSolidNoise = sn }))
-{-# SPECIALIZE mkBWNoiseTexture :: IO (Texture Double) #-}
-{-# SPECIALIZE mkBWNoiseTexture :: IO (Texture Float)  #-}
+{-# SPECIALIZE mkBWNoiseTexture :: GenST s -> ST s (Texture Double) #-}
+{-# SPECIALIZE mkBWNoiseTexture :: GenST s -> ST s (Texture Float)  #-}
 
 data MarbleData a = MarbleData
   { mdFreq       :: !a
@@ -57,9 +60,9 @@ data MarbleData a = MarbleData
   , mdSolidNoise :: !(SolidNoise a)
   } deriving (Read, Show, Eq, Ord)
 
-mkMarbleData :: (RealFloat a, Unbox a, Floating a) => a -> IO (MarbleData a)
-mkMarbleData stripes_per_unit = do
-  sn <- mkSolidNoise
+mkMarbleData :: (RealFloat a, Unbox a, Floating a) => GenST s -> a -> ST s (MarbleData a)
+mkMarbleData gen stripes_per_unit = do
+  sn <- mkSolidNoise gen
   return (MarbleData
            { mdFreq       = pi * stripes_per_unit
            , mdScale      = 5
@@ -68,8 +71,8 @@ mkMarbleData stripes_per_unit = do
            , mdColor1     = Vec3 0.4  0.2  0.1
            , mdColor2     = Vec3 0.06 0.04 0.02
            , mdSolidNoise = sn })
-{-# SPECIALIZE INLINE mkMarbleData :: Double -> IO (MarbleData Double) #-}
-{-# SPECIALIZE INLINE mkMarbleData :: Float  -> IO (MarbleData Float)  #-}
+{-# SPECIALIZE INLINE mkMarbleData :: GenST s -> Double -> ST s (MarbleData Double) #-}
+{-# SPECIALIZE INLINE mkMarbleData :: GenST s -> Float  -> ST s (MarbleData Float)  #-}
 
 mkMarbleTexture :: (RealFloat a, Unbox a, Floating a, RealFrac a) => MarbleData a -> Texture a
 mkMarbleTexture md =
