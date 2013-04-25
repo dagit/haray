@@ -55,10 +55,14 @@ renderScene scene = do
     Just hmd -> do
       let nx = hmdHResolution hmd `div` 2
           ny = hmdVResolution hmd
+          hmeters = abs (hmdHScreenSize hmd / 4 - hmdInterpupillaryDistance hmd / 2)
+          h       = 4 * hmeters / hmdHScreenSize hmd
+          xshift  = round (h * fromIntegral nx)
       img <- stToIO $ mkImage (nx*2) ny
       -- Left eye camera
       forM_ [0 .. (ny-1)] $ \j ->
         forM_ [0 .. (nx-1)] $ \i -> do
+          let x = i + xshift
           hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
             -- TODO: This really isn't a very good distribution        
             ry <- randomRIO (-0.5,0.5)
@@ -78,12 +82,13 @@ renderScene scene = do
               avgC = foldl1' (<+>) cs </ genericLength cs
           -- it's the left eye so write to the pixel coordinates of the final image
           -- without shifting
-          writePixelRGBIO img i j (PixelRGB8 (toWord8 (clamp (getR avgC)))
-                                             (toWord8 (clamp (getG avgC)))
-                                             (toWord8 (clamp (getB avgC))))
+          when (0 <= x && x < nx) $ writePixelRGBIO img x j (PixelRGB8 (toWord8 (clamp (getR avgC)))
+                                                                       (toWord8 (clamp (getG avgC)))
+                                                                       (toWord8 (clamp (getB avgC))))
       -- Right eye camera
       forM_ [0 .. (ny-1)] $ \j ->
         forM_ [0 .. (nx-1)] $ \i -> do
+          let x = i + nx - xshift
           hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
             -- TODO: This really isn't a very good distribution        
             ry <- randomRIO (-0.5,0.5)
@@ -102,9 +107,9 @@ renderScene scene = do
           let cs   = map (processHit shapes directedLights ambientLight) hs
               avgC = foldl1' (<+>) cs </ genericLength cs
           -- shift the pixel location of the final image by nx
-          writePixelRGBIO img (i+nx) j (PixelRGB8 (toWord8 (clamp (getR avgC)))
-                                             (toWord8 (clamp (getG avgC)))
-                                             (toWord8 (clamp (getB avgC))))
+          when (nx <= x && x < 2*nx) $ writePixelRGBIO img x j (PixelRGB8 (toWord8 (clamp (getR avgC)))
+                                                                          (toWord8 (clamp (getG avgC)))
+                                                                          (toWord8 (clamp (getB avgC))))
       return img 
     Nothing  -> do
       img <- stToIO $ mkImage nx ny
