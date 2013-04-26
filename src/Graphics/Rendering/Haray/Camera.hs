@@ -51,3 +51,34 @@ getRay cam a b =
   in Ray origin (unitVector (target <-> origin))
 {-# SPECIALIZE INLINE getRay :: Camera Double -> Double -> Double -> Ray Double #-}
 {-# SPECIALIZE INLINE getRay :: Camera Float  -> Float  -> Float  -> Ray Float  #-}
+
+getFishEyeRay :: Floating a => Camera a -> a -> a -> a -> a -> Ray a
+getFishEyeRay cam xp yp hres vres =
+  let origin = camCenter cam
+      corner = camCorner cam
+      xn     = 2*(xp / hres) - 1
+      yn     = 2*(yp / vres) - 1
+      uvw    = camUVW cam
+      target = (((xn / r)*sfov) *> onbU uvw) <+> ((sfov * (yn / r)) *> onbV uvw) <-> (cfov *> onbW uvw)
+      r      = sqrt (xn*xn + yn*yn)
+      cfov   = cos (r*fov)
+      sfov   = sin (r*fov)
+      fov    = 45 / 180 * pi
+  in Ray origin (unitVector (target <-> origin))
+
+-- | f(r) = k0 + k1*r^2 + k2*r^4 + k3*r^6
+-- where r is the radius. This function tells you how much to distort
+-- the r, so (r,theta) |--> (f(r)*r, theta)
+getBarrelRay :: Floating a => Camera a -> Vec4 a -> a -> a -> a -> a -> Ray a
+getBarrelRay cam (Vec4 k0 k1 k2 k3) xp yp hres vres =
+  let origin = camCenter cam
+      corner = camCorner cam
+      xn     = 2*(xp / hres) - 1
+      yn     = 2*(yp / vres) - 1
+      uvw    = camUVW cam
+      -- theta  = atan (yn/xn)
+      target = ((k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq) *> (Vec3 xn yn 0)) <-> (cfov *> onbW uvw)
+      rSq    = xn*xn + yn*yn
+      cfov   = cos (sqrt rSq*fov)
+      fov    = 90 / 180 * pi
+  in Ray origin (unitVector (target <-> origin))

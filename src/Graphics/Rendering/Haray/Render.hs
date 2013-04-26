@@ -66,6 +66,7 @@ renderScene gen scene = do
           -- TODO: This might be wrong still, but based on what I'm seeing in the rift
           -- documentation I can't tell for sure.
           !xshift = round (eyeProjectionShift * ppm)
+          -- xshift = 0
       img <- mkImage (nx*2) ny
       -- Left eye camera
       forM_ [0 .. (ny-1)] $ \j ->
@@ -76,12 +77,30 @@ renderScene gen scene = do
             ry <- uniformR (-0.5,0.5) gen
             rx <- uniformR (-0.5,0.5) gen
             let tmax = 100000
+                Vec4 k0 k1 k2 k3 = hmdDistortionK hmd
+                xn = 2*(((fromIntegral i)+rx+0.5)/fromIntegral nx) - 1
+                yn = 2*(((fromIntegral j)+rx+0.5)/fromIntegral ny) - 1
+                rSq  = xn*xn + yn*yn
+                xrad = xn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
+                yrad = yn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
+                radius = sqrt (xn*xn + yn*yn)
                 leftCam = translateCamera camera (Vec3 halfIPD 0 0)
-                r   = getRay leftCam (((fromIntegral i)+rx+0.5)/fromIntegral nx)
-                                     (((fromIntegral j)+ry+0.5)/fromIntegral ny)
+                black = \_ _ -> Vec3 0 0 0
+                r   = getBarrelRay leftCam (hmdDistortionK hmd)
+                                           ((fromIntegral i)+rx+0.5)
+                                           ((fromIntegral j)+ry+0.5)
+                                           (fromIntegral nx)
+                                           (fromIntegral ny)
                 hit = listToMaybe $ sortBy comp $ catMaybes $
                   for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
-            return (r,hit)
+            if (-1.25 <= xrad && xrad <= 1.25 && -1.25 <= yrad && yrad <= 1.25)
+              then return (r,hit)
+              else return (r,Just (HitRecord { hrT = 0.0, hrNormal = Vec3 0 0 0, hrUV = Vec2 0 0, hrHitP = Vec3 0 0 0, hrHitTex = black } ))
+{- Need this when using the fish eye view
+            if (radius <= 1)
+              then return (r,hit)
+              else return (r,Nothing)
+-}
           let cs   = map (processHit shapes directedLights ambientLight) hs
               avgC = foldl1' (<+>) cs </ genericLength cs
           -- it's the left eye so write to the pixel coordinates of the final image
@@ -98,12 +117,30 @@ renderScene gen scene = do
             ry <- uniformR (-0.5,0.5) gen
             rx <- uniformR (-0.5,0.5) gen
             let tmax = 100000
+                Vec4 k0 k1 k2 k3 = hmdDistortionK hmd
                 rightCam = translateCamera camera (Vec3 (negate halfIPD) 0 0)
-                r   = getRay rightCam (((fromIntegral i)+rx+0.5)/fromIntegral nx)
-                                      (((fromIntegral j)+ry+0.5)/fromIntegral ny)
+                xn = 2*(((fromIntegral i)+rx+0.5)/fromIntegral nx) - 1
+                yn = 2*(((fromIntegral j)+rx+0.5)/fromIntegral ny) - 1
+                rSq  = xn*xn + yn*yn
+                xrad = xn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
+                yrad = yn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
+                radius = sqrt (xn*xn + yn*yn)
+                black = \_ _ -> Vec3 0 0 0
+                r   = getBarrelRay rightCam (hmdDistortionK hmd)
+                                            ((fromIntegral i)+rx+0.5)
+                                            ((fromIntegral j)+ry+0.5)
+                                            (fromIntegral nx)
+                                            (fromIntegral ny)
                 hit = listToMaybe $ sortBy comp $ catMaybes $
                   for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
-            return (r,hit)
+            if (-1.25 <= xrad && xrad <= 1.25 && -1.25 <= yrad && yrad <= 1.25)
+              then return (r,hit)
+              else return (r,Just (HitRecord { hrT = 0.0, hrNormal = Vec3 0 0 0, hrUV = Vec2 0 0, hrHitP = Vec3 0 0 0, hrHitTex = black } ))
+{- Need this when using the fish eye view
+            if (radius <= 1)
+              then return (r,hit)
+              else return (r,Nothing)
+-}
           let cs   = map (processHit shapes directedLights ambientLight) hs
               avgC = foldl1' (<+>) cs </ genericLength cs
           -- shift the pixel location of the final image by nx
