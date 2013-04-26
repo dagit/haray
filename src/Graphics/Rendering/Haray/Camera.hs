@@ -41,6 +41,9 @@ mkCamera c gaze vup apeture left right bottom top distance =
             , camD          = distance
             }
 
+translateCamera :: Floating a => Camera a -> Vec3 a -> Camera a
+translateCamera c v = c { camCenter = camCenter c <+> v }
+
 getRay :: Floating a => Camera a -> a -> a -> Ray a
 getRay cam a b =
   let origin = camCenter cam

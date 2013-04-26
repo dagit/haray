@@ -14,7 +14,7 @@ Executable haray
   build-depends: haray
                , base > 3 && < 5
   if impl(ghc >= 7.0.1)
-    ghc-prof-options: -rtsopts
+    ghc-options: -rtsopts -threaded
   if impl(ghc >= 7.4.1)
     ghc-prof-options: -fprof-auto
   else
@@ -33,6 +33,8 @@ Library
                      , JuicyPixels  < 4
                      , vector       < 1
                      , mwc-random   < 0.13
+                     , primitive
+                     , deepseq
   
   Exposed-modules:     Graphics.Rendering.Haray.Bitmap
                      , Graphics.Rendering.Haray.Camera
@@ -46,8 +48,6 @@ Library
                      , Graphics.Rendering.Haray.Shape
                      , Graphics.Rendering.Haray.SolidNoise
                      , Graphics.Rendering.Haray.Texture
-  if impl(ghc >= 7.0.1)
-    ghc-prof-options: -rtsopts
   if impl(ghc >= 7.4.1)
     ghc-prof-options: -fprof-auto
   else

@@ -1,10 +1,10 @@
 [ SECamera { camEye     = Vec3 0.0 0.5 0.0
            , camGaze    = Vec3 0.0 (-0.01) (-1.0)
            , camUp      = Vec3 0.0 1.0 0.0
-           , camU0      = -0.8
-           , camV0      = -1
-           , camU1      = 0.8
-           , camV1      = 1
+           , camU0      = -1
+           , camV0      = -1.25
+           , camU1      = 1
+           , camV1      = 1.25
            , camDist    = 1.0
            , camNX      = 640
            , camNY      = 800

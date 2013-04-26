@@ -1,13 +1,13 @@
 module Graphics.Rendering.Haray.Bitmap where
 
 import Codec.Picture.Types
-import Data.Vector.Storable.Mutable
+import Data.Vector.Storable.Mutable as M
 import Control.Monad.ST
 
 mkImage :: Int -> Int -> ST s (MutableImage s PixelRGB8)
 mkImage width height = do
   let compCount = componentCount (undefined :: PixelRGB8)
-  v <- new (width * height * compCount)
+  v <- M.replicate (width * height * compCount) 0
   return $! MutableImage { mutableImageWidth  = width
                          , mutableImageHeight = height
                          , mutableImageData   = v }

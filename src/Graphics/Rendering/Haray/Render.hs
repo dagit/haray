@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Graphics.Rendering.Haray.Render where
 
 
@@ -53,22 +55,28 @@ renderScene gen scene = do
       defaultAmbient = AmbientLight (Vec3 0.2 0.2 0.2)
   case hmdi of
     Just hmd -> do
+      -- moved here to use unshadowed nx and ny
       let nx = hmdHResolution hmd `div` 2
           ny = hmdVResolution hmd
-          hmeters = abs (hmdHScreenSize hmd / 4 - hmdInterpupillaryDistance hmd / 2)
-          h       = 4 * hmeters / hmdHScreenSize hmd
-          xshift  = round (h * fromIntegral nx)
+          xsz = hmdHScreenSize hmd / 2
+          halfIPD = hmdInterpupillaryDistance hmd / 2
+          ppm = fromIntegral nx / xsz
+          viewCenter = hmdHScreenSize hmd / 4
+          eyeProjectionShift = viewCenter - hmdInterpupillaryDistance hmd / 2
+          -- TODO: This might be wrong still, but based on what I'm seeing in the rift
+          -- documentation I can't tell for sure.
+          !xshift = round (eyeProjectionShift * ppm)
       img <- mkImage (nx*2) ny
       -- Left eye camera
       forM_ [0 .. (ny-1)] $ \j ->
         forM_ [0 .. (nx-1)] $ \i -> do
-          let x = i + xshift
+          let x  = i + xshift
           hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
             -- TODO: This really isn't a very good distribution        
             ry <- uniformR (-0.5,0.5) gen
             rx <- uniformR (-0.5,0.5) gen
             let tmax = 100000
-                leftCam = camera { camCenter = camCenter camera <+> (Vec3 (hmdInterpupillaryDistance hmd / 2) 0 0)}
+                leftCam = translateCamera camera (Vec3 halfIPD 0 0)
                 r   = getRay leftCam (((fromIntegral i)+rx+0.5)/fromIntegral nx)
                                      (((fromIntegral j)+ry+0.5)/fromIntegral ny)
                 hit = listToMaybe $ sortBy comp $ catMaybes $
@@ -84,13 +92,13 @@ renderScene gen scene = do
       -- Right eye camera
       forM_ [0 .. (ny-1)] $ \j ->
         forM_ [0 .. (nx-1)] $ \i -> do
-          let x = i + nx - xshift
+          let x  = i + nx - xshift
           hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
             -- TODO: This really isn't a very good distribution        
             ry <- uniformR (-0.5,0.5) gen
             rx <- uniformR (-0.5,0.5) gen
             let tmax = 100000
-                rightCam = camera { camCenter = camCenter camera <-> (Vec3 (hmdInterpupillaryDistance hmd / 2) 0 0)}
+                rightCam = translateCamera camera (Vec3 (negate halfIPD) 0 0)
                 r   = getRay rightCam (((fromIntegral i)+rx+0.5)/fromIntegral nx)
                                       (((fromIntegral j)+ry+0.5)/fromIntegral ny)
                 hit = listToMaybe $ sortBy comp $ catMaybes $
