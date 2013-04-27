@@ -87,10 +87,10 @@ renderScene gen scene = do
                 leftCam = translateCamera camera (Vec3 halfIPD 0 0)
                 black = \_ _ -> Vec3 0 0 0
                 r   = getBarrelRay leftCam (hmdDistortionK hmd)
-                                           ((fromIntegral i)+rx+0.5)
-                                           ((fromIntegral j)+ry+0.5)
-                                           (fromIntegral nx)
-                                           (fromIntegral ny)
+                                            ((fromIntegral i)+rx+0.5)
+                                            ((fromIntegral j)+ry+0.5)
+                                            (fromIntegral nx)
+                                            (fromIntegral ny)
                 hit = listToMaybe $ sortBy comp $ catMaybes $
                   for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
             if (-1.25 <= xrad && xrad <= 1.25 && -1.25 <= yrad && yrad <= 1.25)
@@ -126,11 +126,11 @@ renderScene gen scene = do
                 yrad = yn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
                 radius = sqrt (xn*xn + yn*yn)
                 black = \_ _ -> Vec3 0 0 0
-                r   = getBarrelRay rightCam (hmdDistortionK hmd)
-                                            ((fromIntegral i)+rx+0.5)
-                                            ((fromIntegral j)+ry+0.5)
-                                            (fromIntegral nx)
-                                            (fromIntegral ny)
+                r   = getBarrelRay rightCam  (hmdDistortionK hmd)
+                                             ((fromIntegral i)+rx+0.5)
+                                             ((fromIntegral j)+ry+0.5)
+                                             (fromIntegral nx)
+                                             (fromIntegral ny)
                 hit = listToMaybe $ sortBy comp $ catMaybes $
                   for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
             if (-1.25 <= xrad && xrad <= 1.25 && -1.25 <= yrad && yrad <= 1.25)
@@ -158,8 +158,10 @@ renderScene gen scene = do
             ry <- uniformR (-0.5,0.5) gen
             rx <- uniformR (-0.5,0.5) gen
             let tmax = 100000
-                r = getRay camera (((fromIntegral i)+rx+0.5)/fromIntegral nx)
-                                  (((fromIntegral j)+ry+0.5)/fromIntegral ny)
+                r = getPerspectiveRay camera ((fromIntegral i)+rx+0.5)
+                                             ((fromIntegral j)+ry+0.5)
+                                             (fromIntegral nx)
+                                             (fromIntegral ny)
                 hit = listToMaybe $ sortBy comp $ catMaybes $
                   for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
             return (r,hit)

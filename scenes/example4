@@ -1,4 +1,4 @@
-[ SECamera { camEye     = Vec3 250.0 250.0 0.0
+[ SECamera { camEye     = Vec3 250.0 250.0 15.0
            , camGaze    = Vec3 0.0 0.0 (-1.0)
            , camUp      = Vec3 0.0 1.0 0.0
            , camU0      = -1.2
