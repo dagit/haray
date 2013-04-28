@@ -112,7 +112,6 @@ getFishEyeRay cam xp yp hres vres =
       cfov   = cos (r*fov)
       sfov   = sin (r*fov)
       fov    = 45 / 180 * pi
-  -- in Ray origin (unitVector (target <-> origin))
   in Ray origin (unitVector target)
 {-# SPECIALIZE INLINE getFishEyeRay :: Camera Double -> Double -> Double -> Double -> Double -> Ray Double #-}
 {-# SPECIALIZE INLINE getFishEyeRay :: Camera Float  -> Float  -> Float  -> Float  -> Float  -> Ray Float  #-}
@@ -144,7 +143,6 @@ getBarrelRay cam (Vec4 k0 k1 k2 k3) xp yp hres vres =
       rSq    = xn*xn + yn*yn
       cfov   = cos (sqrt rSq*fov)
       fov    = 90 / 180 * pi
-  -- in Ray origin (unitVector (target <-> origin))
   in Ray origin (unitVector target)
 {-# SPECIALIZE INLINE getBarrelRay :: Camera Double -> Vec4 Double -> Double -> Double -> Double -> Double -> Ray Double #-}
 {-# SPECIALIZE INLINE getBarrelRay :: Camera Float  -> Vec4 Float  -> Float  -> Float  -> Float  -> Float  -> Ray Float  #-}
