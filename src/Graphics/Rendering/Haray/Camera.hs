@@ -103,7 +103,6 @@ getFishEyeRay :: Floating a
               -> Ray a
 getFishEyeRay cam xp yp hres vres =
   let origin = camCenter cam
-      corner = camCorner cam
       xn     = 2*(xp / hres) - 1
       yn     = 2*(yp / vres) - 1
       uvw    = camUVW cam
@@ -135,7 +134,6 @@ getBarrelRay :: Floating a
              -> Ray a
 getBarrelRay cam (Vec4 k0 k1 k2 k3) xp yp hres vres =
   let origin = camCenter cam
-      corner = camCorner cam
       xn     = 2*(xp / hres) - 1
       yn     = 2*(yp / vres) - 1
       uvw    = camUVW cam

@@ -19,7 +19,7 @@ import Control.Monad ( forM_, forM, when )
 import Control.Monad.ST
 import System.Random.MWC
 import Codec.Picture.Types ( Image(..), freezeImage, PixelRGB8(..) )
-import Codec.Picture ( writePng )
+import Codec.Picture ( writePng, writePixel, pixelAt )
 
 renderSceneFromTo :: FilePath -> FilePath -> IO ()
 renderSceneFromTo from to = do
@@ -60,93 +60,25 @@ renderScene gen scene = do
           ny = hmdVResolution hmd
           xsz = hmdHScreenSize hmd / 2
           halfIPD = hmdInterpupillaryDistance hmd / 2
+          leftCam = translateCamera camera (Vec3 halfIPD 0 0)
+          rightCam = translateCamera camera (Vec3 halfIPD 0 0)
           ppm = fromIntegral nx / xsz
           viewCenter = hmdHScreenSize hmd / 4
           eyeProjectionShift = viewCenter - hmdInterpupillaryDistance hmd / 2
           -- TODO: This might be wrong still, but based on what I'm seeing in the rift
           -- documentation I can't tell for sure.
           !xshift = round (eyeProjectionShift * ppm)
-          -- xshift = 0
+      leftImg  <- renderWith leftCam  shapes directedLights ambientLight gen (hmdDistortionK hmd) nx ny
+      rightImg <- renderWith rightCam shapes directedLights ambientLight gen (hmdDistortionK hmd) nx ny
+      -- Join the left and right images
       img <- mkImage (nx*2) ny
-      -- Left eye camera
-      forM_ [0 .. (ny-1)] $ \j ->
-        forM_ [0 .. (nx-1)] $ \i -> do
-          let x  = i + xshift
-          hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
-            -- TODO: This really isn't a very good distribution        
-            ry <- uniformR (-0.5,0.5) gen
-            rx <- uniformR (-0.5,0.5) gen
-            let tmax = 100000
-                Vec4 k0 k1 k2 k3 = hmdDistortionK hmd
-                xn = 2*(((fromIntegral i)+rx+0.5)/fromIntegral nx) - 1
-                yn = 2*(((fromIntegral j)+rx+0.5)/fromIntegral ny) - 1
-                rSq  = xn*xn + yn*yn
-                xrad = xn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
-                yrad = yn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
-                radius = sqrt (xn*xn + yn*yn)
-                leftCam = translateCamera camera (Vec3 halfIPD 0 0)
-                black = \_ _ -> Vec3 0 0 0
-                r   = getBarrelRay leftCam (hmdDistortionK hmd)
-                                            ((fromIntegral i)+rx+0.5)
-                                            ((fromIntegral j)+ry+0.5)
-                                            (fromIntegral nx)
-                                            (fromIntegral ny)
-                hit = listToMaybe $ sortBy comp $ catMaybes $
-                  for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
-            if (-1.25 <= xrad && xrad <= 1.25 && -1.25 <= yrad && yrad <= 1.25)
-              then return (r,hit)
-              else return (r,Just (HitRecord { hrT = 0.0, hrNormal = Vec3 0 0 0, hrUV = Vec2 0 0, hrHitP = Vec3 0 0 0, hrHitTex = black } ))
-{- Need this when using the fish eye view
-            if (radius <= 1)
-              then return (r,hit)
-              else return (r,Nothing)
--}
-          let cs   = map (processHit shapes directedLights ambientLight) hs
-              avgC = foldl1' (<+>) cs </ genericLength cs
-          -- it's the left eye so write to the pixel coordinates of the final image
-          -- without shifting
-          when (0 <= x && x < nx) $ writePixelRGB img x j (PixelRGB8 (toWord8 (clamp (getR avgC)))
-                                                                     (toWord8 (clamp (getG avgC)))
-                                                                     (toWord8 (clamp (getB avgC))))
-      -- Right eye camera
-      forM_ [0 .. (ny-1)] $ \j ->
-        forM_ [0 .. (nx-1)] $ \i -> do
-          let x  = i + nx - xshift
-          hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
-            -- TODO: This really isn't a very good distribution        
-            ry <- uniformR (-0.5,0.5) gen
-            rx <- uniformR (-0.5,0.5) gen
-            let tmax = 100000
-                Vec4 k0 k1 k2 k3 = hmdDistortionK hmd
-                rightCam = translateCamera camera (Vec3 (negate halfIPD) 0 0)
-                xn = 2*(((fromIntegral i)+rx+0.5)/fromIntegral nx) - 1
-                yn = 2*(((fromIntegral j)+rx+0.5)/fromIntegral ny) - 1
-                rSq  = xn*xn + yn*yn
-                xrad = xn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
-                yrad = yn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
-                radius = sqrt (xn*xn + yn*yn)
-                black = \_ _ -> Vec3 0 0 0
-                r   = getBarrelRay rightCam  (hmdDistortionK hmd)
-                                             ((fromIntegral i)+rx+0.5)
-                                             ((fromIntegral j)+ry+0.5)
-                                             (fromIntegral nx)
-                                             (fromIntegral ny)
-                hit = listToMaybe $ sortBy comp $ catMaybes $
-                  for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
-            if (-1.25 <= xrad && xrad <= 1.25 && -1.25 <= yrad && yrad <= 1.25)
-              then return (r,hit)
-              else return (r,Just (HitRecord { hrT = 0.0, hrNormal = Vec3 0 0 0, hrUV = Vec2 0 0, hrHitP = Vec3 0 0 0, hrHitTex = black } ))
-{- Need this when using the fish eye view
-            if (radius <= 1)
-              then return (r,hit)
-              else return (r,Nothing)
--}
-          let cs   = map (processHit shapes directedLights ambientLight) hs
-              avgC = foldl1' (<+>) cs </ genericLength cs
-          -- shift the pixel location of the final image by nx
-          when (nx <= x && x < 2*nx) $ writePixelRGB img x j (PixelRGB8 (toWord8 (clamp (getR avgC)))
-                                                                        (toWord8 (clamp (getG avgC)))
-                                                                        (toWord8 (clamp (getB avgC))))
+      forM_ [0..ny-1] $ \y ->
+        forM_ [0..nx-1] $ \x -> do
+          let leftx'  = x + xshift
+              rightx' = x + nx - xshift
+          -- shift things over to match eye position on physical screen
+          when (0  <= leftx'  && leftx'  < nx)   $ writePixel img leftx'  y (pixelAt leftImg  x y)
+          when (nx <= rightx' && rightx' < 2*nx) $ writePixel img rightx' y (pixelAt rightImg x y)
       img' <- freezeImage img
       return img'
     Nothing  -> do
@@ -172,6 +104,42 @@ renderScene gen scene = do
                                            (toWord8 (clamp (getB avgC))))
       img' <- freezeImage img
       return img'
+
+renderWith :: Camera RealTy -> [Shape RealTy] -> [DirectedLight RealTy] -> AmbientLight RealTy
+           -> GenST s -> Vec4 RealTy -> Int -> Int -> ST s (Image PixelRGB8)
+renderWith cam shapes directedLights ambientLight gen distortion@(Vec4 k0 k1 k2 k3) nx ny =
+  withImage nx ny $ \i j -> do
+    hs <- forM [1..4::Int] $ \_ -> do -- 4 samples per pixel
+      -- TODO: This really isn't a very good distribution
+      ry <- uniformR (-0.5,0.5) gen
+      rx <- uniformR (-0.5,0.5) gen
+      let tmax = 100000
+          xn = 2*(((fromIntegral i)+rx+0.5)/fromIntegral nx) - 1
+          yn = 2*(((fromIntegral j)+rx+0.5)/fromIntegral ny) - 1
+          comp x y = hrT x `compare` hrT y
+          rSq  = xn*xn + yn*yn
+          xrad = xn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
+          yrad = yn*(k0 + k1*rSq + k2*rSq*rSq + k3*rSq*rSq*rSq)
+          radius = sqrt (xn*xn + yn*yn)
+          black = \_ _ -> Vec3 0 0 0
+          blank = HitRecord { hrT = 0.0, hrNormal = Vec3 0 0 0
+                            , hrUV = Vec2 0 0, hrHitP = Vec3 0 0 0
+                            , hrHitTex = black }
+          r   = getBarrelRay cam distortion
+                                 ((fromIntegral i)+rx+0.5)
+                                 ((fromIntegral j)+ry+0.5)
+                                 (fromIntegral nx)
+                                 (fromIntegral ny)
+          hit = listToMaybe $ sortBy comp $ catMaybes $
+            for shapes $ \shape -> shapeHit shape r 0.00001 tmax 0
+      if (-1.25 <= xrad && xrad <= 1.25 && -1.25 <= yrad && yrad <= 1.25)
+        then return (r,hit)
+        else return (r,Just blank)
+    let cs   = map (processHit shapes directedLights ambientLight) hs
+        avgC = foldl1' (<+>) cs </ genericLength cs
+    return (PixelRGB8 (toWord8 (clamp (getR avgC)))
+                      (toWord8 (clamp (getG avgC)))
+                      (toWord8 (clamp (getB avgC))))
 
 processHit :: [Shape RealTy] -> [DirectedLight RealTy] -> AmbientLight RealTy
            -> (Ray RealTy, Maybe (HitRecord RealTy)) -> RGB RealTy

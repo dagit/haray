@@ -21,3 +21,11 @@ writePixelRGB :: MutableImage s PixelRGB8 -> Int -> Int -> PixelRGB8 -> ST s ()
 writePixelRGB bmp x y p = writePixel bmp x (h - y - 1) p
   where
   h = mutableImageHeight bmp
+
+withImage :: Int -> Int -> (Int -> Int -> ST s PixelRGB8) -> ST s (Image PixelRGB8)
+withImage width height pixelGenerator = do
+  img <- mkImage width height
+  sequence_ [pixelGenerator x y >>= writePixelRGB img x y
+            | y <- [0 .. height-1], x <- [0..width-1] ]
+  unsafeFreezeImage img
+
