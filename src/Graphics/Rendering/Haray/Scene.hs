@@ -17,27 +17,24 @@ import Data.Vector.Unboxed (Unbox)
 import Control.Monad.ST
 import System.Random.MWC
 
-type Scene = [SceneElement]
+type Scene a = [SceneElement a]
 
-type RealTy = Float
-
-
-data SceneElement = SESphere (Sphere RealTy)
-                  | SETriangle (Triangle RealTy)
-                  | SEPlane (Plane RealTy)
-                  -- | TODO: fix me: never create ADT with record selectors. Partial functions suck.
-                  | SECamera { camCenter :: Vec3 RealTy
-                             , camGaze   :: Vec3 RealTy
-                             , camUp     :: Vec3 RealTy
-                             , camDist   :: RealTy
-                             , camNX     :: Int
-                             , camNY     :: Int
-                             , camFov    :: RealTy
-                             , camLens   :: C.LensType RealTy }
-                  -- | TODO: fix me: never create ADT with record selectors. Partial functions suck.
-                  | SEHMDInfo (HMDInfo RealTy)
-                  | SEDirectedLight (DirectedLight RealTy)
-                  | SEAmbientLight (AmbientLight RealTy)
+data SceneElement a
+  = SESphere   (Sphere a)
+  | SETriangle (Triangle a)
+  | SEPlane    (Plane a)
+  -- | TODO: fix me: never create ADT with record selectors. Partial functions suck.
+  | SECamera { camCenter :: Vec3 a
+             , camGaze   :: Vec3 a
+             , camUp     :: Vec3 a
+             , camDist   :: a
+             , camNX     :: Int
+             , camNY     :: Int
+             , camFov    :: a
+             , camLens   :: C.LensType a }
+  | SEHMDInfo       (HMDInfo a)
+  | SEDirectedLight (DirectedLight a)
+  | SEAmbientLight  (AmbientLight a)
   deriving (Read, Show, Eq, Ord)
 
 data TextureDescription a = Matte (RGB a)
@@ -46,7 +43,8 @@ data TextureDescription a = Matte (RGB a)
   | Marble !a
   deriving (Read, Show, Eq, Ord)
 
-mkTexture :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => GenST s -> TextureDescription a -> ST s (Texture a)
+mkTexture :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a)
+          => GenST s -> TextureDescription a -> ST s (Texture a)
 mkTexture _   (Matte rgb) = return (mkMatteTexture (MatteData rgb))
 mkTexture _   Stripe      = return mkStripeTexture
 mkTexture gen BWNoise     = mkBWNoiseTexture gen
@@ -61,7 +59,8 @@ data Triangle a = Triangle
   , tTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkTriangle :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => GenST s -> Triangle a -> ST s (TriangleData a)
+mkTriangle :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a)
+           => GenST s -> Triangle a -> ST s (TriangleData a)
 mkTriangle gen (Triangle p0 p1 p2 tex) = do
   tex' <- mkTexture gen tex
   return (TriangleData
@@ -78,7 +77,8 @@ data Sphere a = Sphere
   , sTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkSphere :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => GenST s -> Sphere a -> ST s (SphereData a)
+mkSphere :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a)
+         => GenST s -> Sphere a -> ST s (SphereData a)
 mkSphere gen (Sphere c r tex) = do
   tex' <- mkTexture gen tex
   return (SphereData
@@ -94,7 +94,8 @@ data Plane a = Plane
   , pTexture :: TextureDescription a
   } deriving (Read, Show, Eq, Ord)
 
-mkPlane :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a) => GenST s -> Plane a -> ST s (PlaneData a)
+mkPlane :: (RealFloat a, Unbox a, Ord a, RealFrac a, Floating a)
+        => GenST s -> Plane a -> ST s (PlaneData a)
 mkPlane gen (Plane c n tex) = do
   tex' <- mkTexture gen tex
   return (PlaneData
@@ -104,7 +105,8 @@ mkPlane gen (Plane c n tex) = do
 {-# SPECIALIZE mkPlane :: GenST s -> Plane Double -> ST s (PlaneData Double) #-}
 {-# SPECIALIZE mkPlane :: GenST s -> Plane Float  -> ST s (PlaneData Float)  #-}
 
-mkShape :: GenST s -> SceneElement -> ST s (Maybe (Shape RealTy))
+mkShape :: (RealFrac a, RealFloat a, Unbox a)
+        => GenST s -> SceneElement a -> ST s (Maybe (Shape a))
 mkShape gen (SESphere sd)   = do
   s <- mkSphere gen sd
   return $ Just $ Shape.mkSphere s
@@ -115,19 +117,23 @@ mkShape gen (SEPlane pd)    = do
   p <- mkPlane gen pd
   return $ Just $ Shape.mkPlane p
 mkShape _   _               = return Nothing
+{-# SPECIALIZE mkShape :: GenST s -> SceneElement Double -> ST s (Maybe (Shape Double)) #-}
+{-# SPECIALIZE mkShape :: GenST s -> SceneElement Float  -> ST s (Maybe (Shape Float)) #-}
 
-mkShapes :: GenST s -> Scene -> ST s [Shape RealTy]
+mkShapes :: (Unbox a, RealFrac a, RealFloat a)
+         => GenST s -> Scene a -> ST s [Shape a]
 mkShapes gen scene = catMaybes <$> mapM (mkShape gen) scene
+{-# SPECIALIZE mkShapes :: GenST s -> Scene Double -> ST s [Shape Double] #-}
+{-# SPECIALIZE mkShapes :: GenST s -> Scene Float  -> ST s [Shape Float]  #-}
 
-readScene :: FilePath -> IO Scene
+readScene :: Read a => FilePath -> IO (Scene a)
 readScene fp = do
   cs <- S.readFile fp
   return (read cs)
 
-mkCamera :: Scene -> Maybe (C.Camera RealTy)
+mkCamera :: (Floating a, Ord a) => Scene a -> Maybe (C.Camera a)
 mkCamera = listToMaybe . catMaybes . map mkCamera'
   where
-  mkCamera' :: SceneElement -> Maybe (C.Camera RealTy)
   mkCamera' c@(SECamera{}) = Just (C.mkCamera (camLens c)
                                               (camCenter c)
                                               (camGaze c)
@@ -137,35 +143,39 @@ mkCamera = listToMaybe . catMaybes . map mkCamera'
                                               (camNX c)
                                               (camNY c))
   mkCamera' _              = Nothing
+{-# SPECIALIZE mkCamera :: Scene Double -> Maybe (C.Camera Double) #-}
+{-# SPECIALIZE mkCamera :: Scene Float  -> Maybe (C.Camera Float)  #-}
 
-mkHMDInfo :: Scene -> Maybe (HMDInfo RealTy)
+mkHMDInfo :: Scene a -> Maybe (HMDInfo a)
 mkHMDInfo = listToMaybe . catMaybes . map mkHMDInfo'
   where
-  mkHMDInfo' :: SceneElement -> Maybe (HMDInfo RealTy)
+  mkHMDInfo' :: SceneElement a -> Maybe (HMDInfo a)
   mkHMDInfo' (SEHMDInfo hmdi) = Just hmdi
   mkHMDInfo' _                = Nothing
 
-readSceneToShapes :: GenST RealWorld -> FilePath -> IO [Shape RealTy]
+readSceneToShapes :: (Unbox a, RealFrac a, RealFloat a, Read a)
+                  => GenST RealWorld -> FilePath -> IO [Shape a]
 readSceneToShapes gen fp = do
   sc <- readScene fp
   stToIO (mkShapes gen sc)
 
-readSceneToCamera :: FilePath -> IO (Maybe (C.Camera RealTy))
+readSceneToCamera :: (Read a, Floating a, Ord a)
+                  => FilePath -> IO (Maybe (C.Camera a))
 readSceneToCamera fp = do
   sc <- readScene fp
   return (mkCamera sc)
 
-mkDirectedLights :: Scene -> [DirectedLight RealTy]
+mkDirectedLights :: Scene a -> [DirectedLight a]
 mkDirectedLights = catMaybes . map mkDirectedLights'
   where
-  mkDirectedLights' :: SceneElement -> Maybe (DirectedLight RealTy)
+  mkDirectedLights' :: SceneElement a -> Maybe (DirectedLight a)
   mkDirectedLights' (SEDirectedLight l) = Just l 
   mkDirectedLights' _                   = Nothing
 
-mkAmbientLight :: Scene -> Maybe (AmbientLight RealTy)
+mkAmbientLight :: Scene a -> Maybe (AmbientLight a)
 mkAmbientLight = listToMaybe . catMaybes . map mkAmbientLight'
   where
-  mkAmbientLight' :: SceneElement -> Maybe (AmbientLight RealTy)
+  mkAmbientLight' :: SceneElement a -> Maybe (AmbientLight a)
   mkAmbientLight' (SEAmbientLight l) = Just l 
   mkAmbientLight' _                  = Nothing
 

@@ -1,10 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
-
 module Graphics.Rendering.Haray.Render where
-
 
 import Data.List
 import Data.Maybe
+import Data.Vector.Unboxed (Unbox)
 import Graphics.Rendering.Haray.Ray
 import Graphics.Rendering.Haray.RGB
 import Graphics.Rendering.Haray.Shape
@@ -21,6 +20,8 @@ import System.Random.MWC
 import Codec.Picture.Types ( Image(..), unsafeFreezeImage, PixelRGB8(..) )
 import Codec.Picture ( writePng, writePixel, pixelAt )
 
+type RealTy = Float
+
 renderSceneFromTo :: FilePath -> FilePath -> IO ()
 renderSceneFromTo from to = do
   img <- renderSceneFromFile from 
@@ -30,14 +31,15 @@ renderSceneFromTo from to = do
 renderSceneFromFile :: FilePath -> IO (Image PixelRGB8)
 renderSceneFromFile from = do
   putStrLn $ "Reading scene: " ++ from
-  scene <- readScene from
+  scene <- readScene from :: IO (Scene RealTy)
   putStr $ "Rendering:"
   withSystemRandom (\gen -> renderScene gen scene)
 
 for :: [a] -> (a -> b) -> [b]
 for = flip map
 
-renderScene :: GenST s -> [SceneElement] -> ST s (Image PixelRGB8)
+renderScene :: (Variate a, RealFrac a, RealFloat a, Enum a, Unbox a)
+            => GenST s -> Scene a -> ST s (Image PixelRGB8)
 renderScene gen scene = do
   shapes <- mkShapes gen scene
   let camera         = maybe defaultCamera id c'
@@ -81,6 +83,8 @@ renderScene gen scene = do
       img' <- unsafeFreezeImage img
       return img'
     Nothing -> renderWith camera shapes directedLights ambientLight gen nx ny
+{-# SPECIALIZE renderScene :: GenST s -> Scene Double -> ST s (Image PixelRGB8) #-}
+{-# SPECIALIZE renderScene :: GenST s -> Scene Float  -> ST s (Image PixelRGB8) #-}
 
 renderWith :: (Variate a, Enum a, Eq a, Ord a, Floating a)
            => Camera a -> [Shape a] -> [DirectedLight a] -> AmbientLight a
