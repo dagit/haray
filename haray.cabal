@@ -35,6 +35,7 @@ Library
                      , mwc-random   < 0.13
                      , primitive
                      , deepseq
+                     , async
   
   Exposed-modules:     Graphics.Rendering.Haray.Bitmap
                      , Graphics.Rendering.Haray.Camera

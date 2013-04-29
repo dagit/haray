@@ -16,6 +16,7 @@ import Graphics.Rendering.Haray.Bitmap
 import Numeric.LinearAlgebra.Vector
 import Control.Monad ( forM_, forM, when )
 import Control.Monad.ST
+import Control.Concurrent.Async
 import System.Random.MWC
 import Codec.Picture.Types ( Image(..), unsafeFreezeImage, PixelRGB8(..) )
 import Codec.Picture ( writePng, writePixel, pixelAt )
@@ -39,9 +40,9 @@ for :: [a] -> (a -> b) -> [b]
 for = flip map
 
 renderScene :: (Variate a, RealFrac a, RealFloat a, Enum a, Unbox a)
-            => GenST s -> Scene a -> ST s (Image PixelRGB8)
+            => Gen RealWorld -> Scene a -> IO (Image PixelRGB8)
 renderScene gen scene = do
-  shapes <- mkShapes gen scene
+  shapes <- stToIO $ mkShapes gen scene
   let camera         = maybe defaultCamera id c'
       nx             = C.camNX camera
       ny             = C.camNY camera
@@ -54,6 +55,7 @@ renderScene gen scene = do
                                    (Vec3 0.0 0.0 (-1))
                                    (Vec3 0 1 0) 1 45 500 500)
       defaultAmbient = AmbientLight (Vec3 0.2 0.2 0.2)
+      render c hres vres = stToIO (renderWith c shapes directedLights ambientLight gen hres vres)
   case hmdi of
     Just hmd -> do
       -- moved here to use unshadowed nx and ny
@@ -69,22 +71,22 @@ renderScene gen scene = do
           -- TODO: This might be wrong still, but based on what I'm seeing in the rift
           -- documentation I can't tell for sure.
           !xshift = round (eyeProjectionShift * ppm)
-      leftImg  <- renderWith leftCam  shapes directedLights ambientLight gen nx' ny'
-      rightImg <- renderWith rightCam shapes directedLights ambientLight gen nx' ny'
+      (leftImg, rightImg) <- concurrently (render leftCam  nx' ny')
+                                          (render rightCam nx' ny')
       -- Join the left and right images
-      img <- mkImage (nx'*2) ny'
+      img <- stToIO $ mkImage (nx'*2) ny'
       forM_ [0..ny'-1] $ \y ->
         forM_ [0..nx'-1] $ \x -> do
           let leftx'  = x + xshift
               rightx' = x + nx' - xshift
           -- shift things over to match eye position on physical screen
-          when (0   <= leftx'  && leftx'  < nx')   $ writePixel img leftx'  y (pixelAt leftImg  x y)
-          when (nx' <= rightx' && rightx' < 2*nx') $ writePixel img rightx' y (pixelAt rightImg x y)
-      img' <- unsafeFreezeImage img
+          when (0   <= leftx'  && leftx'  < nx')   $ stToIO $ writePixel img leftx'  y (pixelAt leftImg  x y)
+          when (nx' <= rightx' && rightx' < 2*nx') $ stToIO $ writePixel img rightx' y (pixelAt rightImg x y)
+      img' <- stToIO $ unsafeFreezeImage img
       return img'
-    Nothing -> renderWith camera shapes directedLights ambientLight gen nx ny
-{-# SPECIALIZE renderScene :: GenST s -> Scene Double -> ST s (Image PixelRGB8) #-}
-{-# SPECIALIZE renderScene :: GenST s -> Scene Float  -> ST s (Image PixelRGB8) #-}
+    Nothing -> render camera nx ny
+{-# SPECIALIZE renderScene :: Gen RealWorld -> Scene Double -> IO (Image PixelRGB8) #-}
+{-# SPECIALIZE renderScene :: Gen RealWorld -> Scene Float  -> IO (Image PixelRGB8) #-}
 
 renderWith :: (Variate a, Enum a, Eq a, Ord a, Floating a)
            => Camera a -> [Shape a] -> [DirectedLight a] -> AmbientLight a
