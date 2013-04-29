@@ -26,17 +26,14 @@ data SceneElement = SESphere (Sphere RealTy)
                   | SETriangle (Triangle RealTy)
                   | SEPlane (Plane RealTy)
                   -- | TODO: fix me: never create ADT with record selectors. Partial functions suck.
-                  | SECamera { camEye       :: Vec3 RealTy
-                             , camGaze      :: Vec3 RealTy
-                             , camUp        :: Vec3 RealTy
-                             , camU0        :: RealTy
-                             , camV0        :: RealTy
-                             , camU1        :: RealTy
-                             , camV1        :: RealTy
-                             , camDist      :: RealTy
-                             , camNX        :: Int
-                             , camNY        :: Int
-                             , camApeture   :: RealTy }
+                  | SECamera { camCenter :: Vec3 RealTy
+                             , camGaze   :: Vec3 RealTy
+                             , camUp     :: Vec3 RealTy
+                             , camDist   :: RealTy
+                             , camNX     :: Int
+                             , camNY     :: Int
+                             , camFov    :: RealTy
+                             , camLens   :: C.LensType RealTy }
                   -- | TODO: fix me: never create ADT with record selectors. Partial functions suck.
                   | SEHMDInfo (HMDInfo RealTy)
                   | SEDirectedLight (DirectedLight RealTy)
@@ -127,19 +124,18 @@ readScene fp = do
   cs <- S.readFile fp
   return (read cs)
 
-mkCamera :: Scene -> Maybe (C.Camera RealTy, Int, Int)
+mkCamera :: Scene -> Maybe (C.Camera RealTy)
 mkCamera = listToMaybe . catMaybes . map mkCamera'
   where
-  mkCamera' :: SceneElement -> Maybe (C.Camera RealTy, Int, Int)
-  mkCamera' c@(SECamera{}) = Just (C.mkCamera (camEye c)
+  mkCamera' :: SceneElement -> Maybe (C.Camera RealTy)
+  mkCamera' c@(SECamera{}) = Just (C.mkCamera (camLens c)
+                                              (camCenter c)
                                               (camGaze c)
                                               (camUp c)
-                                              (camApeture c)
-                                              (camU0 c)
-                                              (camU1 c)
-                                              (camV0 c)
-                                              (camV1 c)
-                                              (camDist c), camNX c, camNY c)
+                                              (camDist c)
+                                              (camFov c)
+                                              (camNX c)
+                                              (camNY c))
   mkCamera' _              = Nothing
 
 mkHMDInfo :: Scene -> Maybe (HMDInfo RealTy)
@@ -154,7 +150,7 @@ readSceneToShapes gen fp = do
   sc <- readScene fp
   stToIO (mkShapes gen sc)
 
-readSceneToCamera :: FilePath -> IO (Maybe (C.Camera RealTy, Int, Int))
+readSceneToCamera :: FilePath -> IO (Maybe (C.Camera RealTy))
 readSceneToCamera fp = do
   sc <- readScene fp
   return (mkCamera sc)

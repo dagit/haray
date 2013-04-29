@@ -1,14 +1,11 @@
-[ SECamera { camEye     = Vec3 0.0 0.5 0.0
+[ SECamera { camCenter  = Vec3 0.0 0.5 0.0
            , camGaze    = Vec3 0.0 (-0.01) (-1.0)
            , camUp      = Vec3 0.0 1.0 0.0
-           , camU0      = -0.8
-           , camV0      = -1
-           , camU1      = 0.8
-           , camV1      = 1
            , camDist    = 1.0
            , camNX      = 640
            , camNY      = 800
-           , camApeture = 2}
+           , camFov     = 90
+           , camLens    = Pinhole }
 , SEDirectedLight (DirectedLight { dlDirection = Vec3 1 (-1) -1
                                  , dlColor = Vec3 0.8 0.8 0.8 })
 , SEDirectedLight (DirectedLight { dlDirection = Vec3 0 (-1) 0
