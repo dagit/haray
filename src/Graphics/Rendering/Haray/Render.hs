@@ -94,13 +94,13 @@ renderWith cam shapes directedLights ambientLight gen nx ny = do
       ry <- uniformR (-0.9,0.9) gen
       rx <- uniformR (-0.9,0.9) gen
       return (camRay cam ((fromIntegral i)+rx) ((fromIntegral j)+ry))
-    let hs = for (catMaybes rs) $ \r -> (r, listToMaybe $ sortBy comp $ catMaybes $
-               for shapes $ \shape ->
-                 shapeHit shape r 0.00001 tmax 0)
-    let cs    = map (processHit shapes directedLights ambientLight) hs
+    let hs    = for (catMaybes rs) $ \r -> (r, listToMaybe $ sortBy comp $ catMaybes $
+                  for shapes $ \shape ->
+                    shapeHit shape r 0.00001 tmax 0)
+        cs    = map (processHit shapes directedLights ambientLight) hs
         avgC  = case genericLength cs of
                   0     -> black
-                  lenCs -> foldl' (<+>) black cs </ lenCs
+                  lenCs -> foldl1' (<+>) cs </ lenCs
     return (PixelRGB8 (toWord8 (clamp (getR avgC)))
                       (toWord8 (clamp (getG avgC)))
                       (toWord8 (clamp (getB avgC))))
