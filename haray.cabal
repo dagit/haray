@@ -36,6 +36,7 @@ Library
                      , primitive
                      , deepseq
                      , async
+                     , OpenCL
   
   Exposed-modules:     Graphics.Rendering.Haray.Bitmap
                      , Graphics.Rendering.Haray.Camera
