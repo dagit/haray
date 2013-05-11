@@ -15,10 +15,11 @@ import Graphics.Rendering.Haray.Luminaire
 import Graphics.Rendering.Haray.Bitmap
 import Numeric.LinearAlgebra.Vector
 import Control.Monad ( forM_, forM, when )
-import Control.Monad.ST
+import Control.Monad.ST ( stToIO )
+import Control.Monad.Primitive
 import Control.Concurrent.Async
 import System.Random.MWC
-import Codec.Picture.Types ( Image(..), unsafeFreezeImage, PixelRGB8(..) )
+import Codec.Picture.Types ( Image(..), unsafeFreezeImage, PixelRGB8(..), withImage )
 import Codec.Picture ( writePng, writePixel, pixelAt )
 
 type RealTy = Float
@@ -39,7 +40,7 @@ renderSceneFromFile from = do
 for :: [a] -> (a -> b) -> [b]
 for = flip map
 
-renderScene :: (Variate a, RealFrac a, RealFloat a, Enum a, Unbox a)
+renderScene :: (Enum a, RealFloat a, Unbox a, Variate a)
             => Gen RealWorld -> Scene a -> IO (Image PixelRGB8)
 renderScene gen scene = do
   shapes <- stToIO $ mkShapes gen scene
@@ -74,23 +75,23 @@ renderScene gen scene = do
       (leftImg, rightImg) <- concurrently (render leftCam  nx' ny')
                                           (render rightCam nx' ny')
       -- Join the left and right images
-      img <- stToIO $ mkImage (nx'*2) ny'
+      img <- mkMutableImage (nx'*2) ny'
       forM_ [0..ny'-1] $ \y ->
         forM_ [0..nx'-1] $ \x -> do
           let leftx'  = x + xshift
               rightx' = x + nx' - xshift
           -- shift things over to match eye position on physical screen
-          when (0   <= leftx'  && leftx'  < nx')   $ stToIO $ writePixel img leftx'  y (pixelAt leftImg  x y)
-          when (nx' <= rightx' && rightx' < 2*nx') $ stToIO $ writePixel img rightx' y (pixelAt rightImg x y)
-      img' <- stToIO $ unsafeFreezeImage img
+          when (0   <= leftx'  && leftx'  < nx')   $ writePixel img leftx'  y (pixelAt leftImg  x y)
+          when (nx' <= rightx' && rightx' < 2*nx') $ writePixel img rightx' y (pixelAt rightImg x y)
+      img' <- unsafeFreezeImage img
       return img'
     Nothing -> render camera nx ny
 {-# SPECIALIZE renderScene :: Gen RealWorld -> Scene Double -> IO (Image PixelRGB8) #-}
 {-# SPECIALIZE renderScene :: Gen RealWorld -> Scene Float  -> IO (Image PixelRGB8) #-}
 
-renderWith :: (Variate a, Enum a, Eq a, Ord a, Floating a)
+renderWith :: (Variate a, Enum a, Eq a, Ord a, Floating a, PrimMonad m)
            => Camera a -> [Shape a] -> [DirectedLight a] -> AmbientLight a
-           -> GenST s -> Int -> Int -> ST s (Image PixelRGB8)
+           -> Gen (PrimState m) -> Int -> Int -> m (Image PixelRGB8)
 renderWith cam shapes directedLights ambientLight gen nx ny = do
   let tmax = 100000
       comp x y = hrT x `compare` hrT y
@@ -99,7 +100,7 @@ renderWith cam shapes directedLights ambientLight gen nx ny = do
       -- TODO: This really isn't a very good distribution
       ry <- uniformR (-0.9,0.9) gen
       rx <- uniformR (-0.9,0.9) gen
-      return (camRay cam ((fromIntegral i)+rx) ((fromIntegral j)+ry))
+      return (camRay cam ((fromIntegral i)+rx) ((fromIntegral (ny - j))+ry))
     let hs    = for (catMaybes rs) $ \r -> (r, listToMaybe $ sortBy comp $ catMaybes $
                   for shapes $ \shape ->
                     shapeHit shape r 0.00001 tmax 0)
@@ -110,10 +111,10 @@ renderWith cam shapes directedLights ambientLight gen nx ny = do
     return (PixelRGB8 (toWord8 (clamp (getR avgC)))
                       (toWord8 (clamp (getG avgC)))
                       (toWord8 (clamp (getB avgC))))
-{-# SPECIALIZE renderWith :: Camera Double -> [Shape Double] -> [DirectedLight Double]
-                          -> AmbientLight Double -> GenST s -> Int -> Int -> ST s (Image PixelRGB8) #-}
-{-# SPECIALIZE renderWith :: Camera Float -> [Shape Float] -> [DirectedLight Float]
-                          -> AmbientLight Float -> GenST s -> Int -> Int -> ST s (Image PixelRGB8) #-}
+{-# SPECIALIZE renderWith :: (PrimMonad m) => Camera Double -> [Shape Double] -> [DirectedLight Double]
+                          -> AmbientLight Double -> Gen (PrimState m) -> Int -> Int -> m (Image PixelRGB8) #-}
+{-# SPECIALIZE renderWith :: (PrimMonad m) => Camera Float -> [Shape Float] -> [DirectedLight Float]
+                          -> AmbientLight Float -> Gen (PrimState m) -> Int -> Int -> m (Image PixelRGB8) #-}
 
 processHit :: (Floating a, Fractional a, Ord a)
            => [Shape a] -> [DirectedLight a] -> AmbientLight a

@@ -17,7 +17,7 @@ import qualified Data.Vector.Unboxed as V
 import Data.Vector.Unboxed ( Unbox )
 import Data.List ( foldl1' )
 
-import Control.Monad.ST
+import Control.Monad.Primitive
 import System.Random.MWC
 
 data SolidNoise a = SolidNoise
@@ -63,7 +63,8 @@ knot sn !i !j !k v@(Vec3 x y z) = omega x * omega y * omega z * (gamma sn i j k 
 {-# SPECIALIZE INLINE knot :: SolidNoise Double -> Int -> Int -> Int -> Vec3 Double -> Double #-}
 {-# SPECIALIZE INLINE knot :: SolidNoise Float  -> Int -> Int -> Int -> Vec3 Float  -> Float #-}
 
-mkSolidNoise :: (Unbox a, RealFloat a, Num a) => GenST s -> ST s (SolidNoise a)
+mkSolidNoise :: (Unbox a, RealFloat a, Num a, PrimMonad m)
+             => Gen (PrimState m) -> m (SolidNoise a)
 mkSolidNoise gen = do
   let v = V.fromList [Vec3 1 1 0, Vec3 (-1)    1 0, Vec3 1 (-1)    0, Vec3 (-1) (-1)    0
                      ,Vec3 1 0 1, Vec3 (-1)    0 1, Vec3 1    0 (-1), Vec3 (-1)    0 (-1)
@@ -89,8 +90,8 @@ mkSolidNoise gen = do
     (x,xs') <- fetch xs
     ys      <- shuffle xs'
     return $! x : ys
-{-# SPECIALIZE mkSolidNoise :: GenST s -> ST s (SolidNoise Double) #-}
-{-# SPECIALIZE mkSolidNoise :: GenST s -> ST s (SolidNoise Float)  #-}
+{-# SPECIALIZE mkSolidNoise :: (PrimMonad m) => Gen (PrimState m) -> m (SolidNoise Double) #-}
+{-# SPECIALIZE mkSolidNoise :: (PrimMonad m) => Gen (PrimState m) -> m (SolidNoise Float)  #-}
 
 turbulence :: (RealFloat a, Unbox a, RealFrac a, Floating a) => SolidNoise a -> Vec3 a -> Int -> a
 turbulence _  _ depth | depth < 1 = error "Graphics.Rendering.Haray.SolidNoise.turbulence: depth must be > 0"
