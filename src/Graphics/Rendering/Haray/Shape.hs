@@ -5,6 +5,11 @@ import Graphics.Rendering.Haray.HitRecord
 import Graphics.Rendering.Haray.Texture
 import Numeric.LinearAlgebra.Vector
 
+#ifdef USE_OPENCL
+import Language.C.Syntax
+import Language.C.Quote.OpenCL
+#endif
+
 data Shape a = Shape
   { shapeHit       :: Ray a -> a -> a -> a -> Maybe (HitRecord a)
   , shapeShadowHit :: Ray a -> a -> a -> a -> Bool
@@ -207,3 +212,64 @@ mkPlane pd = Shape
       then False
       else tmin <= tval && tval <= tmax
   }
+
+#ifdef USE_OPENCL
+sphereStruct :: Definition
+sphereStruct = [cedecl|
+typedef struct Sphere {
+  float3 center;
+  float  radius;
+  float3 color;
+} Sphere;
+|]
+
+makeSphere :: Definition
+makeSphere = [cedecl|
+struct Sphere
+makeSphere(const float3 center, const float radius, const float3 color)
+{
+  struct Sphere sphere;
+  sphere.center = center;
+  sphere.radius = radius;
+  sphere.color  = color;
+  return sphere;
+}
+|]
+
+sphereHitCL :: Definition
+sphereHitCL = [cedecl|
+bool
+sphereHit( const struct Sphere * sphere
+         , const struct Ray * r
+         , float tmin, float tmax, float time
+         , struct HitRecord * record)
+{
+  float3 temp = r->origin - sphere->center;
+
+  float a = dot( r->direction, r->direction );
+  float b = 2*dot( r->direction, temp );
+  float c = dot( temp, temp ) - sphere->radius*sphere->radius;
+
+  float discriminant = b*b - 4*a*c;
+
+  // now check to see if ray intersects sphere
+  if( discriminant > 0 ){
+    discriminant = sqrt( discriminant );
+    float t = (-b - discriminant) / (2*a);
+
+    // now check for valid interval
+    if( t < tmin )
+      t = (-b + discriminant) / (2*a);
+    if( t < tmin || t > tmax )
+      return false;
+
+    // we have a valid hit
+    record->t      = t;
+    recond->normal = normalize(r->origin + t * r->direction - sphere->center);
+    record->color  = sphere->color;
+    return true;
+  }
+  return false;
+}
+|]
+#endif
