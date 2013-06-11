@@ -4,6 +4,11 @@ Haray!
 Haray is a ray-tracer written in Haskell. My primary reason for writing a
 ray-tracer is to learn more about the algorithms and challenges.
 
+Install
+-------
+
+Please see INSTALL.md.
+
 TODO
 -----
 
