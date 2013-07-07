@@ -232,14 +232,7 @@ instance Storable (Vec3 CFloat) where
     (#poke cl_float3, x) ptr x
     (#poke cl_float3, y) ptr y
     (#poke cl_float3, z) ptr z
-{-
-  sizeOf    _ = sizeOf    (0::CFloat) * 3
-  alignment _ = alignment (0::CFloat)
-  peek ptr =
-    Vec3 <$> peek (castPtr ptr)
-         <*> peek (ptr `plusPtr`    sizeOf (0::CFloat))
-         <*> peek (ptr `plusPtr` (2*sizeOf (0::CFloat)))
--}
+
 instance Storable (SphereData CFloat) where
   sizeOf    _ = (#size      Sphere)
   alignment _ = (#alignment Sphere)
