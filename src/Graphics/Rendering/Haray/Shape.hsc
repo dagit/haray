@@ -1,13 +1,19 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Graphics.Rendering.Haray.Shape where
 
 import Graphics.Rendering.Haray.Ray
 import Graphics.Rendering.Haray.HitRecord
 import Graphics.Rendering.Haray.Texture
-import Numeric.LinearAlgebra.Vector
+import Numeric.LinearAlgebra.Vector hiding ((<*>))
 
 #ifdef USE_OPENCL
-import Language.C.Syntax
+import Control.Applicative hiding ((*>))
+import Foreign.C.Types
+import Foreign.Storable
 import Language.C.Quote.OpenCL
+import Language.C.Syntax
+#include "structs.h"
+#let alignment t = "(%lu)", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 #endif
 
 data Shape a = Shape
@@ -214,6 +220,40 @@ mkPlane pd = Shape
   }
 
 #ifdef USE_OPENCL
+-- TODO: move this to the proper place
+instance Storable (Vec3 CFloat) where
+  sizeOf    _ = (#size      cl_float3)
+  alignment _ = (#alignment cl_float3)
+  peek ptr    =
+    Vec3 <$> (#peek cl_float3, x) ptr
+         <*> (#peek cl_float3, y) ptr
+         <*> (#peek cl_float3, z) ptr
+  poke ptr (Vec3 x y z) = do
+    (#poke cl_float3, x) ptr x
+    (#poke cl_float3, y) ptr y
+    (#poke cl_float3, z) ptr z
+{-
+  sizeOf    _ = sizeOf    (0::CFloat) * 3
+  alignment _ = alignment (0::CFloat)
+  peek ptr =
+    Vec3 <$> peek (castPtr ptr)
+         <*> peek (ptr `plusPtr`    sizeOf (0::CFloat))
+         <*> peek (ptr `plusPtr` (2*sizeOf (0::CFloat)))
+-}
+instance Storable (SphereData CFloat) where
+  sizeOf    _ = (#size      Sphere)
+  alignment _ = (#alignment Sphere)
+  peek ptr    = do
+    c <- (#peek Sphere, center) ptr
+    r <- (#peek Sphere, radius) ptr
+    x <- (#peek Sphere, color)  ptr
+    return (SphereData c r (\_ _ -> x))
+  poke ptr s  = do
+    (#poke Sphere, center) ptr (sphereCenter s)
+    (#poke Sphere, radius) ptr (sphereRadius s)
+    -- TODO: can't deal with functions in the struct...
+    (#poke Sphere, color) ptr (Vec3 0.2 0.2 (0.8::CFloat))
+
 sphereDefinition :: [Definition]
 sphereDefinition = [cunit|
 
@@ -234,8 +274,8 @@ makeSphere(const float3 center, const float radius, const float3 color)
 }
 
 bool
-sphereHit( const        Sphere * sphere
-         , const struct Ray    * r
+sphereHit( __global const Sphere * sphere
+         , const struct Ray * r
          , float tmin, float tmax
          , struct HitRecord * record)
 {

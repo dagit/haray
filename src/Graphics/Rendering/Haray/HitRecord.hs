@@ -1,7 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Graphics.Rendering.Haray.HitRecord where
 
 import Control.DeepSeq
-import Numeric.LinearAlgebra.Vector
+import Numeric.LinearAlgebra.Vector hiding ((<*>))
 import Graphics.Rendering.Haray.Texture
 
 #ifdef USE_OPENCL

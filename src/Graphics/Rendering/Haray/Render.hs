@@ -165,7 +165,9 @@ $edecls:rayDefinition
 $edecls:sphereDefinition
 $edecls:cameraDefinition
 
-__kernel void renderScene(__global float *image, int nx, int ny)
+__kernel void renderScene(__global float *image
+                         ,__global const struct Sphere * shapes
+                         , int nshapes, int nx, int ny)
 {
   int id = get_global_id(0);
 
@@ -174,8 +176,6 @@ __kernel void renderScene(__global float *image, int nx, int ny)
   float tmax;
   float3 dir = {0,0,-1};
 
-  // geometry
-  struct Sphere sphere = makeSphere((float3)(250,250,-1000), 150, (float3)(0.2,0.2,0.8));
   // id = j + i * ny, j in [0 .. ny - 1], i in [ 0 .. nx - 1 ]
   // j  = id % ny
   // i  = (id - j) / ny
@@ -185,10 +185,12 @@ __kernel void renderScene(__global float *image, int nx, int ny)
   is_a_hit = false;
   struct Ray r = { {i,j,0}, dir };
 
-  if(sphereHit(&sphere, &r, 0.00001f, tmax, &rec))
-  {
-    tmax     = rec.t;
-    is_a_hit = true;
+  for(int i = 0; i < nshapes; i++){
+    if(sphereHit(&shapes[i], &r, 0.00001f, tmax, &rec))
+    {
+      tmax     = rec.t;
+      is_a_hit = true;
+    }
   }
   if( is_a_hit ){
     image[3*id+0] = rec.color.x;
@@ -199,7 +201,6 @@ __kernel void renderScene(__global float *image, int nx, int ny)
     image[3*id+1] = 0.2;
     image[3*id+2] = 0.2;
   }
-
 }
 
 |]

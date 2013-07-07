@@ -2,9 +2,9 @@ module Main where
 
 #ifndef USE_OPENCL
 
+import Control.Monad ( when )
 import Graphics.Rendering.Haray.Render ( renderSceneFromTo )
 import System.Environment ( getArgs )
-import Control.Monad ( when )
 
 #else
 
@@ -19,6 +19,8 @@ import Foreign.Marshal.Array( newArray, peekArray )
 import Graphics.Rendering.Haray.Bitmap
 import Graphics.Rendering.Haray.RGB
 import Graphics.Rendering.Haray.Render ( renderDefinition )
+import Graphics.Rendering.Haray.Shape
+import Numeric.LinearAlgebra.Vector hiding ((<*>))
 import Text.PrettyPrint.Mainland
 import qualified Data.Time as T
 import qualified Data.Vector as V
@@ -41,6 +43,10 @@ main = do
       programSource = show (ppr renderDefinition)
       (nx,ny)       = (500,500) :: (CInt, CInt)
   -- Initialize OpenCL
+  -- This putStrLn is useful for debugging. You can toss
+  -- the output into an interactive opencl compiler like the
+  -- one from intel to find out where the errors are
+  -- putStrLn programSource
   (platform:_) <- clGetPlatformIDs
   (dev:_) <- clGetDeviceIDs platform CL_DEVICE_TYPE_ALL
   context <- clCreateContext [CL_CONTEXT_PLATFORM platform] [dev] print
@@ -57,15 +63,27 @@ main = do
   let original = [0 .. fromIntegral (nx*ny*3)] :: [CFloat]
       elemSize = sizeOf (0 :: CFloat)
       vecSize  = elemSize * length original
+      shapes :: [SphereData CFloat]
+      shapes = [SphereData (Vec3 250 250 (-1000))
+                           (150)
+                           (\_ _ -> Vec3 0.2 0.2 0.8)]
+
   input  <- newArray original
+  scene  <- newArray shapes
 
   imageBuf <- clCreateBuffer context [CL_MEM_READ_WRITE
                                      ,CL_MEM_COPY_HOST_PTR]
                                      (vecSize, castPtr input)
 
+  sceneBuf <- clCreateBuffer context [CL_MEM_READ_ONLY
+                                     ,CL_MEM_COPY_HOST_PTR]
+                                     (sizeOf (undefined::SphereData CFloat), castPtr scene)
+
   clSetKernelArgSto kernel 0 imageBuf
-  clSetKernelArgSto kernel 1 nx
-  clSetKernelArgSto kernel 2 ny
+  clSetKernelArgSto kernel 1 sceneBuf
+  clSetKernelArgSto kernel 2 (1::CInt)
+  clSetKernelArgSto kernel 3 nx
+  clSetKernelArgSto kernel 4 ny
   
   -- Execute Kernel
   t2 <- getTime
@@ -82,6 +100,7 @@ main = do
   void (clReleaseKernel kernel)
   void (clReleaseProgram program)
   void (clReleaseMemObject imageBuf)
+  void (clReleaseMemObject sceneBuf)
   void (clReleaseCommandQueue q)
   void (clReleaseContext context)
   t5 <- getTime
