@@ -214,34 +214,29 @@ mkPlane pd = Shape
   }
 
 #ifdef USE_OPENCL
-sphereStruct :: Definition
-sphereStruct = [cedecl|
+sphereDefinition :: [Definition]
+sphereDefinition = [cunit|
+
 typedef struct Sphere {
   float3 center;
   float  radius;
   float3 color;
 } Sphere;
-|]
 
-makeSphere :: Definition
-makeSphere = [cedecl|
-struct Sphere
+Sphere
 makeSphere(const float3 center, const float radius, const float3 color)
 {
-  struct Sphere sphere;
+  Sphere sphere;
   sphere.center = center;
   sphere.radius = radius;
   sphere.color  = color;
   return sphere;
 }
-|]
 
-sphereHitCL :: Definition
-sphereHitCL = [cedecl|
 bool
-sphereHit( const struct Sphere * sphere
-         , const struct Ray * r
-         , float tmin, float tmax, float time
+sphereHit( const        Sphere * sphere
+         , const struct Ray    * r
+         , float tmin, float tmax
          , struct HitRecord * record)
 {
   float3 temp = r->origin - sphere->center;
@@ -265,7 +260,7 @@ sphereHit( const struct Sphere * sphere
 
     // we have a valid hit
     record->t      = t;
-    recond->normal = normalize(r->origin + t * r->direction - sphere->center);
+    record->normal = normalize(r->origin + t * r->direction - sphere->center);
     record->color  = sphere->color;
     return true;
   }

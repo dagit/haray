@@ -31,6 +31,12 @@ Executable haray
   if flag(use-opencl)
     default-extensions: QuasiQuotes
     cpp-options: -DUSE_OPENCL
+    Build-depends: OpenCL
+                 , mainland-pretty
+                 -- Need full support for OpenCL types
+                 , language-c-quote >= 0.7.2
+                 , JuicyPixels  >= 3.1 && < 4
+                 , vector
 
 Library
   hs-source-dirs: src

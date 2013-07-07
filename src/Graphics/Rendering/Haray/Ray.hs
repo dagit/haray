@@ -18,19 +18,18 @@ pointAtParameter (Ray o d) t = o <+> (t*>d)
 
 #ifdef USE_OPENCL
 
-rayStruct :: Definition
-rayStruct = [cedecl|
+rayDefinition :: [Definition]
+rayDefinition = [cunit|
 typedef struct Ray {
   float3 origin;
   float3 direction;
 } Ray;
-|]
 
-rayPointAtParameter :: Definition
-rayPointAtParameter = [cedecl|
-float3 pointAtParameter(struct Ray * r, float t)
+float3 pointAtParameter(const Ray * r, const float t)
 {
   return r->origin + t*r->direction;
+  // TODO: can it be written this way?
+  // return mad(t,r->direction,r->origin);
 }
 |]
 

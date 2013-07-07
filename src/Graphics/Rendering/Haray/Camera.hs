@@ -5,6 +5,11 @@ import Numeric.LinearAlgebra.Vector
 import Numeric.LinearAlgebra.OrthoNormalBasis
 import Graphics.Rendering.Haray.Ray
 
+#ifdef USE_OPENCL
+import Language.C.Syntax
+import Language.C.Quote.OpenCL
+#endif
+
 data LensType a
   = Pinhole
   | FishEye
@@ -166,3 +171,60 @@ barrelRay cam (Vec4 k0 k1 k2 k3) xp yp =
        else Nothing
 {-# SPECIALIZE INLINE barrelRay :: Camera Double -> Vec4 Double -> Double -> Double -> Maybe (Ray Double) #-}
 {-# SPECIALIZE INLINE barrelRay :: Camera Float  -> Vec4 Float  -> Float  -> Float  -> Maybe (Ray Float)  #-}
+
+#ifdef USE_OPENCL
+cameraDefinition :: [Definition]
+cameraDefinition = [cunit|
+typedef struct ONB {
+  float3 u;
+  float3 v;
+  float3 w;
+} ONB;
+
+ONB mkFromWV(float3 w, float3 v)
+{
+  ONB uvw;
+  uvw.v = normalize(v);
+  uvw.u = normalize(cross(v,w));
+  uvw.w = cross(uvw.u, uvw.v);
+  return uvw;
+}
+
+typedef struct Camera {
+  float3 center;
+  ONB    uvw;
+  float  d;
+  int    nx;
+  int    ny;
+  float  fov;
+  // We have to put the camRay below as we can't
+  // have function pointers in structs
+} Camera;
+
+Camera mkCamera(float3 center, float3 gaze, float3 vup
+               ,float distance, float fov, int nx, int ny)
+{
+  Camera cam;
+  cam.center = center;
+  cam.d      = distance;
+  cam.nx     = nx;
+  cam.ny     = ny;
+  cam.fov    = fov;
+  cam.uvw    = mkFromWV(- gaze, vup);
+  return cam;
+}
+
+// Generates a perspectiveRay with an option for clipping the ray
+// although, in the case of the normal camera the ray never gets
+// clipped.
+bool
+camRay(const Camera cam, const float xp, const float yp, struct Ray * ray){
+  float xn = 2*(xp / cam.nx) - 1;
+  float yn = 2*(yp / cam.ny) - 1;
+
+  ray->origin    = cam.center;
+  ray->direction = xn * cam.uvw.u + yn * cam.uvw.v - cam.d * cam.uvw.w;
+  return true;
+}
+|]
+#endif

@@ -22,6 +22,11 @@ import System.Random.MWC
 import Codec.Picture.Types ( Image(..), unsafeFreezeImage, PixelRGB8(..), withImage )
 import Codec.Picture ( writePng, writePixel, pixelAt )
 
+#ifdef USE_OPENCL
+import Language.C.Syntax
+import Language.C.Quote.OpenCL
+#endif
+
 type RealTy = Float
 
 renderSceneFromTo :: FilePath -> FilePath -> IO ()
@@ -151,3 +156,53 @@ processHit shapes directedLights ambientLight (r,hit) = case hit of
                           -> (Ray Double, Maybe (HitRecord Double)) -> RGB Double #-}
 {-# SPECIALIZE processHit :: [Shape Float] -> [DirectedLight Float] -> AmbientLight Float
                           -> (Ray Float, Maybe (HitRecord Float)) -> RGB Float #-}
+
+#ifdef USE_OPENCL
+renderDefinition :: [Definition]
+renderDefinition = [cunit|
+$edecls:hitRecordDefinition
+$edecls:rayDefinition
+$edecls:sphereDefinition
+$edecls:cameraDefinition
+
+__kernel void renderScene(__global float *image, int nx, int ny)
+{
+  int id = get_global_id(0);
+
+  struct HitRecord rec;
+  bool is_a_hit;
+  float tmax;
+  float3 dir = {0,0,-1};
+
+  // geometry
+  float3 origin = {250,250,-1000};
+  float3 color  = {0.2,0.2,0.8};
+  struct Sphere sphere = makeSphere(origin, 150, color);
+  // id = j + i * ny, j in [0 .. ny - 1], i in [ 0 .. nx - 1 ]
+  // j  = id % ny
+  // i  = (id - j) / ny
+  int j = id % ny;
+  int i = (id - j) / ny;
+  tmax = 100000.0f;
+  is_a_hit = false;
+  struct Ray r = { {i,j,0}, dir };
+
+  if(sphereHit(&sphere, &r, 0.00001f, tmax, &rec))
+  {
+    tmax     = rec.t;
+    is_a_hit = true;
+  }
+  if( is_a_hit ){
+    image[3*id+0] = rec.color.x;
+    image[3*id+1] = rec.color.y;
+    image[3*id+2] = rec.color.z;
+  } else {
+    image[3*id+0] = 0.2;
+    image[3*id+1] = 0.2;
+    image[3*id+2] = 0.2;
+  }
+
+}
+
+|]
+#endif

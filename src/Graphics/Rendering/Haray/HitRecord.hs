@@ -23,8 +23,8 @@ instance NFData (HitRecord a) where
 
 #ifdef USE_OPENCL
 
-hitRecordStruct :: Definition
-hitRecordStruct = [cedecl|
+hitRecordDefinition :: [Definition]
+hitRecordDefinition = [cunit|
 typedef struct HitRecord {
   float  t;
   float3 normal;
