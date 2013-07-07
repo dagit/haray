@@ -1,23 +1,24 @@
 module Main where
 
-import Graphics.Rendering.Haray.Render ( renderSceneFromTo, renderDefinition )
+import Graphics.Rendering.Haray.Render ( renderSceneFromTo )
 import System.Environment ( getArgs )
 import Control.Monad ( when )
 
 #ifdef USE_OPENCL
-import Language.C.Syntax
-import Language.C.Quote.OpenCL
-import Text.PrettyPrint.Mainland
+import Codec.Picture ( writePng, writePixel, pixelAt )
+import Codec.Picture.Types ( Image(..), unsafeFreezeImage, PixelRGB8(..), withImage )
+import Control.Applicative
+import Control.Monad
 import Control.Parallel.OpenCL
 import Foreign( castPtr, nullPtr, sizeOf )
 import Foreign.C.Types( CFloat, CInt )
 import Foreign.Marshal.Array( newArray, peekArray )
-import Graphics.Rendering.Haray.RGB
-import Control.Monad
 import Graphics.Rendering.Haray.Bitmap
-import Codec.Picture.Types ( Image(..), unsafeFreezeImage, PixelRGB8(..), withImage )
-import Codec.Picture ( writePng, writePixel, pixelAt )
-import Control.Applicative
+import Graphics.Rendering.Haray.RGB
+import Graphics.Rendering.Haray.Render ( renderDefinition )
+import Language.C.Quote.OpenCL
+import Language.C.Syntax
+import Text.PrettyPrint.Mainland
 import qualified Data.Vector as V
 #endif
 
