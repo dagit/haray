@@ -175,9 +175,7 @@ __kernel void renderScene(__global float *image, int nx, int ny)
   float3 dir = {0,0,-1};
 
   // geometry
-  float3 origin = {250,250,-1000};
-  float3 color  = {0.2,0.2,0.8};
-  struct Sphere sphere = makeSphere(origin, 150, color);
+  struct Sphere sphere = makeSphere((float3)(250,250,-1000), 150, (float3)(0.2,0.2,0.8));
   // id = j + i * ny, j in [0 .. ny - 1], i in [ 0 .. nx - 1 ]
   // j  = id % ny
   // i  = (id - j) / ny

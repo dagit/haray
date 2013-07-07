@@ -1,25 +1,28 @@
 module Main where
 
+#ifndef USE_OPENCL
+
 import Graphics.Rendering.Haray.Render ( renderSceneFromTo )
 import System.Environment ( getArgs )
 import Control.Monad ( when )
 
-#ifdef USE_OPENCL
-import Codec.Picture ( writePng, writePixel, pixelAt )
-import Codec.Picture.Types ( Image(..), unsafeFreezeImage, PixelRGB8(..), withImage )
+#else
+
+import Codec.Picture ( writePng, writePixel )
+import Codec.Picture.Types ( unsafeFreezeImage, PixelRGB8(..) )
 import Control.Applicative
 import Control.Monad
 import Control.Parallel.OpenCL
-import Foreign( castPtr, nullPtr, sizeOf )
+import Foreign( castPtr, sizeOf )
 import Foreign.C.Types( CFloat, CInt )
 import Foreign.Marshal.Array( newArray, peekArray )
 import Graphics.Rendering.Haray.Bitmap
 import Graphics.Rendering.Haray.RGB
 import Graphics.Rendering.Haray.Render ( renderDefinition )
-import Language.C.Quote.OpenCL
-import Language.C.Syntax
 import Text.PrettyPrint.Mainland
+import qualified Data.Time as T
 import qualified Data.Vector as V
+
 #endif
 
 
@@ -33,7 +36,9 @@ main = do
   renderSceneFromTo input outfile
 #else
 main = do
-  let programSource = show (ppr renderDefinition)
+  start <- T.getCurrentTime
+  let getTime = fromRational . toRational . flip T.diffUTCTime start <$> T.getCurrentTime :: IO Double
+      programSource = show (ppr renderDefinition)
       (nx,ny)       = (500,500) :: (CInt, CInt)
   -- Initialize OpenCL
   (platform:_) <- clGetPlatformIDs
@@ -42,8 +47,10 @@ main = do
   q <- clCreateCommandQueue context dev []
   
   -- Initialize Kernel
+  t0 <- getTime
   program <- clCreateProgramWithSource context programSource
   clBuildProgram program [dev] ""
+  t1 <- getTime
   kernel <- clCreateKernel program "renderScene"
   
   -- Initialize parameters
@@ -61,13 +68,25 @@ main = do
   clSetKernelArgSto kernel 2 ny
   
   -- Execute Kernel
+  t2 <- getTime
   eventExec <- clEnqueueNDRangeKernel q kernel [nx*ny] [1] []
+  t3 <- getTime
   
   -- Get Result
-  eventRead <- clEnqueueReadBuffer q mem_in True 0 vecSize (castPtr input)
-                                                            [eventExec]
+  _ <- clEnqueueReadBuffer q mem_in True 0 vecSize (castPtr input)
+                                                   [eventExec]
+  t4 <- getTime
   
   result <- V.fromList <$> peekArray (length original) input
+  t5 <- getTime
+  -- release memory / device handles when done
+  void (clReleaseKernel kernel)
+  void (clReleaseProgram program)
+  void (clReleaseMemObject mem_in)
+  void (clReleaseCommandQueue q)
+  void (clReleaseContext context)
+  t6 <- getTime
+  -- Write the output image
   let nx' = fromIntegral nx :: Int
       ny' = fromIntegral ny :: Int
   img <- mkMutableImage nx' ny'
@@ -83,5 +102,14 @@ main = do
 
   img' <- unsafeFreezeImage img
   writePng "test.png" img'
+  t7 <- getTime
+  putStrLn ("Compilation time:     " ++ show (t1 - t0))
+  putStrLn ("Parameter setup time: " ++ show (t2 - t1))
+  putStrLn ("Execution time:       " ++ show (t3 - t2))
+  putStrLn ("Fetch result time:    " ++ show (t4 - t3))
+  putStrLn ("Convert to vector:    " ++ show (t5 - t4))
+  putStrLn ("Release resources:    " ++ show (t6 - t5))
+  putStrLn ("Write png:            " ++ show (t7 - t6))
+
 
 #endif

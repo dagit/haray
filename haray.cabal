@@ -37,6 +37,7 @@ Executable haray
                  , language-c-quote >= 0.7.2
                  , JuicyPixels  >= 3.1 && < 4
                  , vector
+                 , time
 
 Library
   hs-source-dirs: src
