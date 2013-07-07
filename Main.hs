@@ -59,33 +59,32 @@ main = do
       vecSize  = elemSize * length original
   input  <- newArray original
 
-  mem_in <- clCreateBuffer context [CL_MEM_READ_WRITE
-                                   ,CL_MEM_COPY_HOST_PTR]
-                                   (vecSize, castPtr input)  
+  imageBuf <- clCreateBuffer context [CL_MEM_READ_WRITE
+                                     ,CL_MEM_COPY_HOST_PTR]
+                                     (vecSize, castPtr input)
 
-  clSetKernelArgSto kernel 0 mem_in
+  clSetKernelArgSto kernel 0 imageBuf
   clSetKernelArgSto kernel 1 nx
   clSetKernelArgSto kernel 2 ny
   
   -- Execute Kernel
   t2 <- getTime
   eventExec <- clEnqueueNDRangeKernel q kernel [nx*ny] [1] []
-  t3 <- getTime
   
   -- Get Result
-  _ <- clEnqueueReadBuffer q mem_in True 0 vecSize (castPtr input)
-                                                   [eventExec]
-  t4 <- getTime
+  _ <- clEnqueueReadBuffer q imageBuf True 0 vecSize (castPtr input)
+                                                     [eventExec]
+  t3 <- getTime
   
   result <- V.fromList <$> peekArray (length original) input
-  t5 <- getTime
+  t4 <- getTime
   -- release memory / device handles when done
   void (clReleaseKernel kernel)
   void (clReleaseProgram program)
-  void (clReleaseMemObject mem_in)
+  void (clReleaseMemObject imageBuf)
   void (clReleaseCommandQueue q)
   void (clReleaseContext context)
-  t6 <- getTime
+  t5 <- getTime
   -- Write the output image
   let nx' = fromIntegral nx :: Int
       ny' = fromIntegral ny :: Int
@@ -102,14 +101,13 @@ main = do
 
   img' <- unsafeFreezeImage img
   writePng "test.png" img'
-  t7 <- getTime
+  t6 <- getTime
   putStrLn ("Compilation time:     " ++ show (t1 - t0))
   putStrLn ("Parameter setup time: " ++ show (t2 - t1))
   putStrLn ("Execution time:       " ++ show (t3 - t2))
-  putStrLn ("Fetch result time:    " ++ show (t4 - t3))
-  putStrLn ("Convert to vector:    " ++ show (t5 - t4))
-  putStrLn ("Release resources:    " ++ show (t6 - t5))
-  putStrLn ("Write png:            " ++ show (t7 - t6))
+  putStrLn ("Convert to vector:    " ++ show (t4 - t3))
+  putStrLn ("Release resources:    " ++ show (t5 - t4))
+  putStrLn ("Write png:            " ++ show (t6 - t5))
 
 
 #endif
