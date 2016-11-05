@@ -2,6 +2,8 @@ module Graphics.Rendering.Haray.Ray where
 
 import Numeric.LinearAlgebra.Vector
 
+import Prelude hiding ((*>))
+
 #ifdef USE_OPENCL
 import Language.C.Syntax
 import Language.C.Quote.OpenCL

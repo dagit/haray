@@ -5,6 +5,8 @@ import Numeric.LinearAlgebra.Vector
 import Numeric.LinearAlgebra.OrthoNormalBasis
 import Graphics.Rendering.Haray.Ray
 
+import Prelude hiding ((*>))
+
 #ifdef USE_OPENCL
 import Language.C.Syntax
 import Language.C.Quote.OpenCL

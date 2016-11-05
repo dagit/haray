@@ -8,6 +8,7 @@ import Data.Vector.Unboxed
 
 import Control.Monad.Primitive
 import System.Random.MWC
+import Prelude hiding ((*>))
 
 type Texture a = Vec2 a -> Vec3 a -> RGB a
 

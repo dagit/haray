@@ -27,6 +27,8 @@ import Language.C.Syntax
 import Language.C.Quote.OpenCL
 #endif
 
+import Prelude hiding ((*>),(<*>))
+
 type RealTy = Float
 
 renderSceneFromTo :: FilePath -> FilePath -> IO ()

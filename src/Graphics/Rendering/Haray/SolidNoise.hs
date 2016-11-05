@@ -19,6 +19,7 @@ import Data.List ( foldl1' )
 
 import Control.Monad.Primitive
 import System.Random.MWC
+import Prelude hiding ((*>))
 
 data SolidNoise a = SolidNoise
   { snGradient :: !(V.Vector (Vec3 a)) -- TODO: smart constructor alert: this is meant to have length 16

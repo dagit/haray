@@ -6,6 +6,8 @@ import Graphics.Rendering.Haray.HitRecord
 import Graphics.Rendering.Haray.Texture
 import Numeric.LinearAlgebra.Vector hiding ((<*>))
 
+import Prelude hiding ((*>))
+
 #ifdef USE_OPENCL
 import Control.Applicative hiding ((*>))
 import Foreign.C.Types
